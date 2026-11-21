@@ -95,7 +95,9 @@ class Data:
         for s in self.search:
             q = low(s.get("query"))
             if q:
-                self.search_by_query.setdefault(" ".join(q.split()), []).append(s)
+                # Keyed by the query's words in sorted order, as the name keys are built, so a
+                # result is found whatever order its query lists the words in ("smith john").
+                self.search_by_query.setdefault(" ".join(sorted(q.split())), []).append(s)
 
         self.hits_of_alert = {}
         listed = set()
