@@ -1,0 +1,2 @@
+$ tools/scorecard.sh . dev
+scorecard finci-hardening@bcb186b | score 100.0 | right 50/50 | unsafe 0 | problems 0 | DIFF 465 SAME 124 REVIEW 230 | determinism PASS | run 9s

@@ -1,0 +1,32 @@
+Run receipt
+===========
+
+Code commit      bcb186b1ffe6e497d4aebd69647aa07e2fe04422  (branch finci-hardening; this proof pack is the commit after it and adds docs only)
+Command          system/run dev output/dev.jsonl
+Python           3.9.6 (standard library only, no network, no model calls)
+
+Input: the dev/ data folder
+  SHA-256 of the listing below (one "sha256  path" line per file, sorted by name):
+  560636dd0971f48731d274bf6b5034651ed985770d235444510750f867d563aa
+  e4893bb675352353928b12004c12b6bd8a64a22192b42f2584dd6fa2a6db6317  dev/POLICY.md
+  8e4f6f6b51b1ae41ea1305edb0712d19c434167ef13e28e8fc779ea08fc7975e  dev/accounts.jsonl
+  50dda9c6fec3201191174023b5ecaa331df3812907b0fb016583c690bc948d2d  dev/alerts.jsonl
+  e377805841e90d318bb4e18d4aa224ad51453bbed797699bbffe77e5cc0a8c1c  dev/customers.jsonl
+  10b347b86dac3d5f0adc8d5ecbe684271fdf0b7d0a967588da16c98133951791  dev/hits.jsonl
+  83ef39513e8ecc1f19dcb769018d1c538a272ca9c16d3d7aff8cb4394cd6bcf4  dev/kyc_checks.jsonl
+  e68699d5f76262bca1b51eae5f2c12947a69abdeabe3d1d4a2784f8639092bc8  dev/name_variants.json
+  052c031d80d3f6b3114eec15ab46ba0d5df1128facf0ec499fe6e2b863f5b141  dev/notes.jsonl
+  152fe7a05b64f0870af74ecca79ca6cbae9d2f1c9ea65b3d10c93df30713614b  dev/onboarding.jsonl
+  0fa66947ae4949caa63dd06b4084818ffee93d7fd921de39627ce7a7a70461e9  dev/practice_labels.jsonl
+  0a4ca08d97dabf1c7b6c10ca59f5969e27497cfffd848c44a199fb50340e939a  dev/search_results.jsonl
+
+Output
+  SHA-256 of the produced output     3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2
+  SHA-256 of committed output/dev.jsonl 3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2
+  identical to the committed file    yes
+  lines                              819 (one per hit)
+  decisions                          DIFFERENT_ENTITY 465, SAME_ENTITY 124, REVIEW 230
+
+Reproduce
+  sha256sum dev/* | sort -k2        (or: shasum -a 256 dev/* | sort -k2)
+  system/run dev /tmp/out.jsonl && sha256sum /tmp/out.jsonl

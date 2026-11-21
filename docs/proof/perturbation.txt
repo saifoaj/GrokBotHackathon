@@ -1,0 +1,8 @@
+$ python3 tools/perturb.py dev
+dates          0 decisions changed,   0 customer records changed
+name_case      0 decisions changed,   0 customer records changed
+note_names     0 decisions changed,   0 customer records changed
+aliases        0 decisions changed,   0 customer records changed
+note_noise     0 decisions changed,   0 customer records changed
+countries      0 decisions changed,   0 customer records changed
+ALL            0 decisions changed,   0 customer records changed
