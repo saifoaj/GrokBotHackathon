@@ -103,7 +103,7 @@ class Auditor:
         if linked:
             if len(linked) == 1:
                 return "<p>The link leads to one record, so no choice is needed.</p>"
-            rows = self.fit_rows(linked, screened, use_place=False)
+            rows = self.fit_rows(linked, screened, use_place=True)
             any_kept = any(r[0] for r in rows)
             note = ("<p>The link leads to %d records (a joint account or several links). The screened name and date "
                     "of birth pick between them.%s</p>" %
