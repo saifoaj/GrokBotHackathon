@@ -37,6 +37,36 @@ def is_person(entity_type):
 
 # ------------------------------------------------------------------ KYC notes
 
+_TITLE_WORD = r"[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’\-]+"
+_TITLE_RUN = r"(%s(?:\s+%s){1,3})" % (_TITLE_WORD, _TITLE_WORD)
+# Where a provider note puts the holder's name when it is not written in capitals.
+_TITLE_CUES = [
+    re.compile(r"^\s*" + _TITLE_RUN + r"['’]s\b"),                      # "Greta Lindholm's passport ..."
+    re.compile(r"\b(?:for|of|holder:?|name:?|named|customer|applicant)\s+" + _TITLE_RUN + r"(?=[\s,.;:(]|['’]s\b|$)"),
+    re.compile(r"^\s*" + _TITLE_RUN + r"\s+(?:\(|was|has|passed|successfully|cleared|completed|confirmed)\b"),
+]
+_NOT_NAME = {"identity", "check", "verification", "verified", "passport", "national", "driving", "licence",
+             "license", "document", "documents", "date", "birth", "onboarding", "analyst", "kyc", "refresh",
+             "provider", "persona", "onfido", "veriff", "sumsub", "jumio", "trulioo", "companies", "registry",
+             "lookup", "result", "results", "the", "a", "an", "id", "card", "selfie", "docs", "customer",
+             "applicant", "holder", "name", "issuing", "state", "reference"}
+_MONTH_WORDS = {"january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+                "november", "december"}
+
+
+def title_case_name(text):
+    """A holder name written in normal capitals, found only next to a name cue. Returns (name, span)."""
+    for cue in _TITLE_CUES:
+        for m in cue.finditer(text):
+            words = m.group(1).split()
+            if any(w.lower().strip("'’") in _NOT_NAME or w.lower() in _MONTH_WORDS for w in words):
+                continue
+            if any(countries.canon(w) and countries.known(countries.canon(w)) for w in words):
+                continue
+            return " ".join(words), m.span(1)
+    return None
+
+
 def parse_kyc_note(note):
     """Facts from an onboarding note that records an identity check.
 
@@ -66,6 +96,11 @@ def parse_kyc_note(note):
         best = max(runs, key=lambda r: (len(r[0]), -r[1]))
         name = " ".join(best[0])
         rest = text[:best[1]] + " " + text[best[2]:]
+    if not name or len(name.split()) < 2:
+        title = title_case_name(text)
+        if title:
+            name, span = title
+            rest = text[:span[0]] + " " + text[span[1]:]
     dob = None
     candidates = []
     for s, e, value in find_dates(rest):

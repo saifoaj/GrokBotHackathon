@@ -40,9 +40,14 @@ def born_date(text):
         tail = text[m.end():m.end() + 40]
         sl = re.match(r"\s*(\d{1,2})[/.](\d{1,2})[/.](\d{4})", tail)
         if sl:
-            # The provider's day/month order is not stated. Reading "6/20/1955" as June would let a
-            # month difference clear the hit (cost 60 if wrong), so only the year is used.
-            return (int(sl.group(3)), None, None)
+            # Dates in profiles are written as the provider wrote them. When only one day/month order
+            # is possible ("6/20/1955" can only be 20 June), use it; when both are possible, the year only.
+            a, b, y = int(sl.group(1)), int(sl.group(2)), int(sl.group(3))
+            if b > 12 >= a >= 1 and b <= 31:
+                return (y, a, b)
+            if a > 12 >= b >= 1 and a <= 31:
+                return (y, b, a)
+            return (y, None, None)
         dates = find_dates(tail, years=True)
         if dates and dates[0][0] <= 2:
             return dates[0][2]
