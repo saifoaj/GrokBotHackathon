@@ -74,14 +74,14 @@ _PATTERNS = [
     # day-first slashes (all slash dates in the data are day first)
     (re.compile(r"(?<!\d)(\d{1,2})/(\d{1,2})/(\d{4})(?!\d)"), lambda g: (int(g[2]), int(g[1]), int(g[0]))),
     (re.compile(r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)"), lambda g: (int(g[2]), int(g[1]), int(g[0]))),
-    # 27 June 1967 / 27th June 1967
-    (re.compile(r"(?<!\d)(\d{1,2})(?:st|nd|rd|th)?\s+(" + _MON + r"),?\s+(\d{4})(?!\d)", re.I),
+    # 27 June 1967 / 27th June 1967 / 27 June , 1967 (spaces before the comma are tolerated)
+    (re.compile(r"(?<!\d)(\d{1,2})(?:st|nd|rd|th)?\s+(" + _MON + r")\s*,?\s+(\d{4})(?!\d)", re.I),
      lambda g: (int(g[2]), MONTHS[g[1].lower().rstrip(".")], int(g[0]))),
-    # June 27, 1967 / June 27 1967
-    (re.compile(r"(" + _MON + r")\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})(?!\d)", re.I),
+    # June 27, 1967 / June 27 1967 / June 27 , 1967
+    (re.compile(r"(" + _MON + r")\s+(\d{1,2})(?:st|nd|rd|th)?\s*,?\s+(\d{4})(?!\d)", re.I),
      lambda g: (int(g[2]), MONTHS[g[0].lower().rstrip(".")], int(g[1]))),
-    # June 1967
-    (re.compile(r"(" + _MON + r"),?\s+(\d{4})(?!\d)", re.I),
+    # June 1967 / June , 1967
+    (re.compile(r"(" + _MON + r")\s*,?\s+(\d{4})(?!\d)", re.I),
      lambda g: (int(g[1]), MONTHS[g[0].lower().rstrip(".")], None)),
     (re.compile(r"(?<![\d-])(\d{4})-(\d{1,2})(?![\d-])"), lambda g: (int(g[0]), int(g[1]), None)),
 ]
