@@ -162,7 +162,8 @@ PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <style>
 :root{--bg:#0b0b0c;--card:#111113;--ink:#ededed;--muted:#8b8b90;--line:#26262a;--ok:#8fd19e;--okbg:#14261a;
 --bad:#f08b8b;--badbg:#2c1517;--warn:#f1a25c;--warnbg:#2b1d12;--un:#b4b4ba;--unbg:#1c1c20;--accent:#e8e8e8;
---mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+--mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;color-scheme:dark}
+.legendwrap{overflow-x:auto}header{top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 Inter,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
 .chip{display:inline-block;font:600 12.5px/1 var(--mono);letter-spacing:.02em;padding:6px 10px;border-radius:7px;white-space:nowrap}
 .chip.DIFFERENT_ENTITY{background:var(--okbg);color:var(--ok)}.chip.SAME_ENTITY{background:var(--badbg);color:var(--bad)}
@@ -205,7 +206,7 @@ table.l tr{cursor:pointer}table.l tr:hover td{background:var(--bg)}table.l tr.se
 .legend td:nth-child(2){min-width:220px}
 </style></head><body>
 <header><h1>FinCI results: what went in, what came out, what passed, what failed</h1><div class="tabs" id="tabs"></div></header>
-<div style="padding:16px 20px 0"><div class="legend" id="legend"></div></div>
+<div style="padding:16px 20px 0" class="legendwrap"><div class="legend" id="legend"></div></div>
 <main><section><div class="cards" id="cards"></div><div id="cases"></div><div class="filters">
 <select id="fStatus"><option value="">All results</option><option value="unsafe">Unsafe clears</option>
 <option value="fail">Other misses</option><option value="pass">Passed</option><option value="unlabelled">No expected answer</option></select>
@@ -275,8 +276,15 @@ def main(argv):
     report, folders = argv[1], argv[2:]
     data = [build(f) for f in folders]
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    page = PAGE.replace("__DATA__", blob)
     with open(report, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(PAGE.replace("__DATA__", blob))
+        handle.write(page)
+    # the same page without its own document wrapper, for hosts that add one
+    body = page.replace('<!doctype html><html lang="en"><head><meta charset="utf-8">\n'
+                        '<meta name="viewport" content="width=device-width,initial-scale=1">', "")
+    body = body.replace("</head><body>", "").replace("</body></html>", "")
+    with open(os.path.splitext(report)[0] + ".fragment.html", "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(body)
     for d in data:
         s = d["summary"]
         sys.stderr.write("%s: %d hits, %d with answers, %d pass, %d other misses, %d unsafe, score %s\n" % (
