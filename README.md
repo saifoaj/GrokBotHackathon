@@ -1,5 +1,49 @@
 # FinCI: Same Person or Not?
 
+## Quick setup
+
+Needs only Python 3; there is nothing to install.
+
+1. **Get the code**
+
+   ```bash
+   git clone https://github.com/saifoaj/GrokBotHackathon.git
+   cd GrokBotHackathon
+   ```
+
+2. **Add the data.** Put the event's development files (`alerts.jsonl`, `hits.jsonl`, …) in a
+   `dev/` folder. They are not in this repository.
+
+3. **Add your Grok key (optional).** Create a file called `.env` in the repository folder:
+
+   ```bash
+   GROK_API_KEY=your-xai-key
+   GROK_MODEL=grok-4.7
+   ```
+
+   With the key, Grok puts values the rules cannot read into standard form and fact-checks
+   free-text readings. Without it, only the rules run. `.env` is never committed.
+
+4. **Run**
+
+   ```bash
+   python3 system/main.py dev output/dev.jsonl
+   ```
+
+   On Windows use `python` instead of `python3`. Without a key a run takes about 15 seconds.
+   The first run with a key calls Grok, which takes a while: the dev fact check alone can take
+   20 minutes or more. It saves Grok's answers in `.cache/llm/` and `debug/fact_check.jsonl`.
+   Later runs reuse them, take seconds and give the same output every time.
+
+5. **Score and test**
+
+   ```bash
+   python3 validate.py --data dev --output output/dev.jsonl --score dev/practice_labels.jsonl
+   python3 -m unittest discover -s system/tests
+   ```
+
+Switches: `LLM=0` turns off the Grok normaliser and `FACT_CHECK=0` turns off the fact check.
+
 ![FinCI dashboard](dashboard.png)
 
 ## Overview
