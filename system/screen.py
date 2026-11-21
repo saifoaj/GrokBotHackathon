@@ -2,85 +2,29 @@
 
 Usage: python3 screen.py <data folder> <output file>
 
-Baseline version: every hit is sent to REVIEW / INSUFFICIENT_DATA with no
-customer record resolved. The structure (load -> decide each hit -> render
--> write) is where the real customer resolution and hit comparison will go.
+Pipeline: load the data folder (data.py) -> resolve each alert's customer
+(customer.py, POLICY principles 2-4) -> decide each hit -> write one JSON
+line per hit.
+
+Current stage: customer resolution is real; decide_hit() still sends every
+hit to REVIEW / INSUFFICIENT_DATA until the hit-side comparison is built.
 
 Determinism rules followed here:
 - no clock, no randomness, no network;
-- every loaded file is sorted by its ID straight after loading;
+- every loaded file is sorted by its key straight after loading;
 - nothing iterates over a set or dict without sorted();
 - output lines sorted by (alert_id, hit_id), evidence sorted and de-duplicated,
   json.dumps(sort_keys=True, ensure_ascii=False).
 """
 
-import json
 import os
 import sys
-import unicodedata
+
+from customer import Resolver
+from data import Data, canonical, warn
 
 REVIEW = "REVIEW"
 INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
-
-
-# ---------------------------------------------------------------- loading
-
-def warn(message):
-    sys.stderr.write("warning: " + message + "\n")
-
-
-def load_jsonl(folder, filename, id_key):
-    """Read a JSON Lines file and return its rows sorted by id_key.
-
-    Lines that are not valid JSON objects, or have no ID, are skipped with a
-    warning. Duplicate IDs keep one row, chosen by its canonical JSON text, so
-    the choice never depends on the input line order.
-    """
-    path = os.path.join(folder, filename)
-    rows = []
-    if not os.path.isfile(path):
-        warn("missing file " + filename)
-        return rows
-    with open(path, encoding="utf-8") as handle:
-        for number, line in enumerate(handle, 1):
-            if not line.strip():
-                continue
-            try:
-                row = json.loads(line)
-            except ValueError:
-                warn("%s line %d is not JSON, skipped" % (filename, number))
-                continue
-            if not isinstance(row, dict) or not isinstance(row.get(id_key), str):
-                warn("%s line %d has no %s, skipped" % (filename, number, id_key))
-                continue
-            rows.append(row)
-    rows.sort(key=lambda row: (row[id_key], canonical(row)))
-    unique = []
-    for row in rows:
-        if unique and unique[-1][id_key] == row[id_key]:
-            warn("%s has duplicate %s %s, kept one" % (filename, id_key, row[id_key]))
-            continue
-        unique.append(row)
-    return unique
-
-
-def canonical(value):
-    return json.dumps(value, sort_keys=True, ensure_ascii=False)
-
-
-def index_by(rows, id_key):
-    return {row[id_key]: row for row in rows}
-
-
-# ---------------------------------------------------------------- text
-
-def normalise(text):
-    """Accent-free, case-folded text for comparisons (NFKD, strip marks)."""
-    if not isinstance(text, str):
-        return ""
-    decomposed = unicodedata.normalize("NFKD", text)
-    stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    return stripped.casefold()
 
 
 def shown(value):
@@ -92,28 +36,55 @@ def shown(value):
 
 # ---------------------------------------------------------------- deciding
 
-def decide_hit(hit, alert):
+def describe_resolution(resolution, alert):
+    """One sentence on who the customer is, with record IDs."""
+    customer = (alert or {}).get("customer") or {}
+    screened = shown(customer.get("name"))
+    if resolution.status == "resolved":
+        person = resolution.persons[0]
+        if len(person.record_ids) > 1:
+            return ("The screened customer %s in alert %s was resolved to one person with records %s."
+                    % (screened, resolution.alert_id, ", ".join(person.record_ids)))
+        return ("The screened customer %s in alert %s was resolved to customer record %s."
+                % (screened, resolution.alert_id, person.primary_id))
+    if resolution.status == "ambiguous":
+        return ("%d different people in the system of record fit the screened customer %s in alert %s (%s)."
+                % (len(resolution.persons), screened, resolution.alert_id,
+                   "; ".join(p.describe() for p in resolution.persons)))
+    return ("No customer record could be found for the screened customer %s in alert %s."
+            % (screened, resolution.alert_id))
+
+
+def decide_hit(hit, alert, resolution):
     """Return the decision for one hit.
 
-    Baseline: no customer resolution or comparison yet, so nothing can clear
-    or confirm the hit and the safe answer is REVIEW.
+    Not built yet: the hit's own facts are not gathered or compared, so
+    nothing can clear or confirm the hit and the safe answer is REVIEW.
     """
-    customer = (alert or {}).get("customer") or {}
-    screened_name = shown(customer.get("name"))
-    hit_name = shown(hit.get("name"))
     reason = (
-        "No customer record has been resolved yet for the screened customer "
-        "%s in alert %s, so hit %s (%s) has not been compared with them. "
-        "No fact has been found that either contradicts or confirms the match. "
-        "A verified legal name, date of birth and country for the customer, "
-        "compared with the hit's details, would settle it."
-        % (screened_name, hit["alert_id"], hit["hit_id"], hit_name)
+        "%s Hit %s (%s) has not yet been compared with the customer's facts, so no "
+        "fact found contradicts or confirms the match. Comparing the customer's verified "
+        "legal name, date of birth and countries with the hit's would settle it."
+        % (describe_resolution(resolution, alert), hit["hit_id"], shown(hit.get("name")))
     )
+    evidence = [person.primary_id for person in resolution.persons]
+    return {
+        "decision": REVIEW,
+        "reason_code": INSUFFICIENT_DATA,
+        "customer_record_id": resolution.customer_record_id,
+        "reason": reason,
+        "evidence": evidence,
+    }
+
+
+def fallback_result(hit, alert_id):
     return {
         "decision": REVIEW,
         "reason_code": INSUFFICIENT_DATA,
         "customer_record_id": None,
-        "reason": reason,
+        "reason": "Hit %s in alert %s could not be assessed because its data could not be "
+                  "read. A person needs to review it against the customer's records."
+                  % (hit["hit_id"], alert_id),
         "evidence": [],
     }
 
@@ -133,29 +104,37 @@ def render(hit, result):
     return canonical(line)
 
 
+def resolve_all(data):
+    """{alert_id: Resolution} for every alert, in alert ID order."""
+    resolver = Resolver(data)
+    resolutions = {}
+    for alert in data.alerts:
+        try:
+            resolutions[alert["alert_id"]] = resolver.resolve(alert)
+        except Exception as error:  # any doubt: no customer, REVIEW
+            warn("alert %s could not be resolved (%s: %s)" % (alert["alert_id"], type(error).__name__, error))
+    return resolutions
+
+
 def run(data_folder, output_file):
-    alerts = index_by(load_jsonl(data_folder, "alerts.jsonl", "alert_id"), "alert_id")
-    hits = load_jsonl(data_folder, "hits.jsonl", "hit_id")
+    data = Data(data_folder)
+    resolutions = resolve_all(data)
 
     lines = []
-    for hit in sorted(hits, key=lambda h: (str(h.get("alert_id")), h["hit_id"])):
-        if not isinstance(hit.get("alert_id"), str):
+    for hit in sorted(data.hits, key=lambda h: (str(h.get("alert_id")), h["hit_id"])):
+        alert_id = hit.get("alert_id")
+        if not isinstance(alert_id, str):
             warn("hit %s has no alert_id, skipped" % hit["hit_id"])
             continue
-        alert = alerts.get(hit["alert_id"])
+        alert = data.alert_by_id.get(alert_id)
+        resolution = resolutions.get(alert_id)
         try:
-            result = decide_hit(hit, alert)
+            if alert is None or resolution is None:
+                raise ValueError("alert %s missing or unresolved" % alert_id)
+            result = decide_hit(hit, alert, resolution)
         except Exception as error:  # any doubt: REVIEW, never clear
-            warn("hit %s could not be decided (%s)" % (hit["hit_id"], error))
-            result = {
-                "decision": REVIEW,
-                "reason_code": INSUFFICIENT_DATA,
-                "customer_record_id": None,
-                "reason": "Hit %s could not be assessed because its data could not "
-                          "be read. A person needs to review it against the "
-                          "customer's records." % hit["hit_id"],
-                "evidence": [],
-            }
+            warn("hit %s could not be decided (%s: %s)" % (hit["hit_id"], type(error).__name__, error))
+            result = fallback_result(hit, alert_id)
         lines.append(render(hit, result))
 
     parent = os.path.dirname(os.path.abspath(output_file))
