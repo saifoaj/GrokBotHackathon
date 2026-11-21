@@ -120,7 +120,7 @@ def build(folder):
         lab = a.labels.get(hid)
         routes, screened, persons = a.people.resolve(alert)
         pics = [a.people.picture(p, screened) for p in persons]
-        h = hitmod.picture(hit, a.data)
+        h = hitmod.picture(hit, a.data, a.checker)
         results = [compare(p, h, a.rules, parse_date(alert.get("screened_at"))) for p in pics]
         status = "unlabelled" if lab is None else ("pass" if lab["decision"] == line["decision"] else
                                                     ("unsafe" if line["decision"] == "DIFFERENT_ENTITY" else "fail"))

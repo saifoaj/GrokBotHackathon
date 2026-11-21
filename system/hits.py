@@ -4,7 +4,8 @@ import re
 
 import countries
 from customers import is_person
-from norm import as_list, find_dates, parse_date, strip_accents
+from fact_check import claim_stands
+from norm import as_list, find_dates, fmt_date, parse_date, strip_accents
 
 LISTING = {
     "sanctions": "sanctioned individual",
@@ -190,7 +191,7 @@ def search_keys(name):
     return out
 
 
-def search_checks(hit, data, tied_countries):
+def search_checks(hit, data, tied_countries, checker=None):
     """Every search result under the hit's name keys, judged: [(key, [(result, accepted, why, years)])].
 
     A result is about the hit only if it uses the listing phrase for the hit's category and
@@ -218,40 +219,102 @@ def search_checks(hit, data, tied_countries):
             if not years:
                 checks.append((s, False, "about the hit, but no age at a date", None))
                 continue
-            checks.append((s, True, "listing phrase and country %s match; birth years %s" %
-                           (", ".join(sorted(tied & set(named))), " or ".join(str(y) for y in years)), years))
+            why = "listing phrase and country %s match; birth years %s" % (
+                ", ".join(sorted(tied & set(named))), " or ".join(str(y) for y in years))
+            if checker:
+                verdict = checker.verdict(s["result_id"], "search", snippet, {
+                    "about_hit": True,
+                    "listing_phrase": phrase,
+                    "hit_countries": sorted(tied),
+                    "birth_years": [str(y) for y in years],
+                })
+                if not claim_stands(verdict, ["about_hit", "birth_years"]):
+                    checks.append((s, False, "extracted reading was not used", None))
+                    continue
+            checks.append((s, True, why, years))
         out.append((key, checks))
     return out
 
 
-def picture(hit, data):
+def listed_dates(hit):
+    dates = []
+    for value in as_list(hit.get("dobs")):
+        d = parse_date(value)
+        if d:
+            dates.append(d)
+        else:  # "c. 1960", "1958/1959", "1960 (approx.)": every year it names is a possible birth year
+            for y in re.findall(r"(?<!\d)(1[89]\d\d|20\d\d)(?!\d)", value):
+                dates.append((int(y), None, None))
+    return dates
+
+
+def profile_paragraph(hit):
+    notes = (hit.get("profile_notes") or "").strip()
+    if not notes:
+        return ""
+    return re.split(r"\n\s*\n", notes, maxsplit=1)[0]
+
+
+def _profile_ok(checker, hit, first, claim):
+    if not checker:
+        return True
+    return claim_stands(checker.verdict(hit["hit_id"], "profile", first, claim), list(claim))
+
+
+def submit_reads(hit, data, checker):
+    """Queue every free-text reading this hit might use, including fallbacks after a rejection."""
+    if not checker or not is_person(hit.get("entity_type")) or listed_dates(hit):
+        return
+    first = profile_paragraph(hit)
+    news = first.lstrip().lower().startswith("according to") if first else True
+    if first and not news:
+        born = born_date(first)
+        years = hit_age_years(first, hit_names(hit))
+        if born:
+            checker.verdict(hit["hit_id"], "profile", first, {"dob": fmt_date(born)})
+        if years:
+            checker.verdict(hit["hit_id"], "profile", first, {"birth_years": [str(y) for y in years]})
+    tied = hit_countries(hit)
+    if not tied:
+        return
+    phrase = listing_phrase(hit)
+    for _key, checks in search_checks(hit, data, tied):
+        for result, accepted, _why, years in checks:
+            if not accepted:
+                continue
+            checker.verdict(result["result_id"], "search", result.get("snippet") or "", {
+                "about_hit": True,
+                "listing_phrase": phrase,
+                "hit_countries": list(tied),
+                "birth_years": [str(y) for y in years],
+            })
+
+
+def picture(hit, data, checker=None):
     pic = {"id": hit["hit_id"], "is_person": is_person(hit.get("entity_type")), "names": hit_names(hit),
            "name": hit.get("name") or "", "countries": hit_countries(hit), "dates": [], "dob_origin": None,
            "sr": []}
     # 1. dobs field
-    for value in as_list(hit.get("dobs")):
-        d = parse_date(value)
-        if d:
-            pic["dates"].append(d)
-        else:  # "c. 1960", "1958/1959", "1960 (approx.)": every year it names is a possible birth year
-            for y in re.findall(r"(?<!\d)(1[89]\d\d|20\d\d)(?!\d)", value):
-                pic["dates"].append((int(y), None, None))
+    pic["dates"] = list(listed_dates(hit))
     if pic["dates"]:
         pic["dob_origin"] = "listed"
-    notes = hit.get("profile_notes") or ""
-    if not pic["dates"] and pic["is_person"] and notes:
-        first = re.split(r"\n\s*\n", notes.strip(), maxsplit=1)[0]
-        news = first.lstrip().lower().startswith("according to")
-        born = None if news else born_date(first)
-        years = None if news or born else hit_age_years(first, pic["names"])
+    first = profile_paragraph(hit)
+    news = first.lstrip().lower().startswith("according to") if first else True
+    if not pic["dates"] and pic["is_person"] and first and not news:
+        born = born_date(first)
+        years = None if born else hit_age_years(first, pic["names"])
         if born:
-            pic["dates"] = [born]
-            pic["dob_origin"] = "profile_date"
-        if years:
-            pic["dates"] = [(y, None, None) for y in years]
-            pic["dob_origin"] = "profile"
+            if _profile_ok(checker, hit, first, {"dob": fmt_date(born)}):
+                pic["dates"] = [born]
+                pic["dob_origin"] = "profile_date"
+            else:
+                years = hit_age_years(first, pic["names"])
+        if not pic["dates"] and years:
+            if _profile_ok(checker, hit, first, {"birth_years": [str(y) for y in years]}):
+                pic["dates"] = [(y, None, None) for y in years]
+                pic["dob_origin"] = "profile"
     if not pic["dates"] and pic["is_person"] and pic["countries"]:
-        for key, checks in search_checks(hit, data, pic["countries"]):
+        for key, checks in search_checks(hit, data, pic["countries"], checker):
             for s, accepted, why, years in checks:
                 if accepted:
                     for y in years:
@@ -268,7 +331,7 @@ def picture(hit, data):
     pic["death"] = parse_date(hit.get("deceased_date"))
     # dated reports: exactly "According to ...; Month d, yyyy:" lines
     reports = []
-    for m in REPORT.finditer(notes):
+    for m in REPORT.finditer(hit.get("profile_notes") or ""):
         try:
             reports.append((int(m.group(3)), _MONTHS.index(m.group(1)), int(m.group(2))))
         except ValueError:

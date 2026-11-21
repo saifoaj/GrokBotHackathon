@@ -21,6 +21,7 @@ import countries  # noqa: E402
 import hits as hitmod  # noqa: E402
 from customers import People, is_person, parse_kyc_note  # noqa: E402
 from decide import agrees, compare, contradicted  # noqa: E402
+import fact_check  # noqa: E402
 from load import Data, approved, low, read_jsonl  # noqa: E402
 from names import NameRules  # noqa: E402
 from norm import fmt_date, parse_date, phone_key  # noqa: E402
@@ -54,7 +55,8 @@ class Auditor:
         self.data = Data(folder)
         mainmod.DATA = self.data
         self.rules = NameRules(folder)
-        self.people = People(self.data, self.rules)
+        self.checker = fact_check.maybe_checker(live=False)
+        self.people = People(self.data, self.rules, checker=self.checker)
         self.labels = {r["hit_id"]: r for r in read_jsonl(folder, "practice_labels", "hit_id")}
 
     # ------------------------------------------------------------ steps
@@ -226,7 +228,7 @@ class Auditor:
         txt = table(["Fact", "Value"], rows)
         if h["is_person"] and not hitmod.as_list(hit.get("dobs")) and h["dob_origin"] in (None, "search"):
             srows = []
-            for key, checks in hitmod.search_checks(hit, self.data, h["countries"]):
+            for key, checks in hitmod.search_checks(hit, self.data, h["countries"], self.checker):
                 for s, ok, why, years in checks:
                     srows.append([E(key), E(s["result_id"]), mark(ok) + "<br><small>%s</small>" % E(why), E(s["snippet"])])
             txt += "<h5>Search results for the hit's name</h5>" + (
@@ -269,7 +271,7 @@ class Auditor:
         alert = self.data.alert.get(hit.get("alert_id"), {})
         routes, screened, persons = self.people.resolve(alert)
         pics = [self.people.picture(p, screened) for p in persons]
-        h = hitmod.picture(hit, self.data)
+        h = hitmod.picture(hit, self.data, self.checker)
         screened_at = parse_date(alert.get("screened_at"))
         lab = self.labels.get(hid)
         ok = lab is None or lab["decision"] == line["decision"]
@@ -330,9 +332,9 @@ def main(argv):
         sys.stderr.write(__doc__)
         return 2
     folder, report = argv[1], argv[2]
-    a = Auditor(folder)
     tmp = report + ".out.jsonl"
     mainmod.main(["main.py", folder, tmp])
+    a = Auditor(folder)
     lines = {json.loads(l)["hit_id"]: json.loads(l) for l in open(tmp, encoding="utf-8")}
     os.remove(tmp)
     if "--all" in argv[3:]:

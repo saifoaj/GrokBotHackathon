@@ -1,7 +1,9 @@
 """Screening review system: main.py <data folder> <output file>.
 
-Deterministic, rules only, standard library only. Every hit gets exactly one line;
-any failure for a hit falls back to REVIEW / INSUFFICIENT_DATA.
+The rules decide every hit. When GROK_API_KEY is set, each free-text reading
+(KYC note, support note, profile sentence, search snippet) is checked before
+the fact enters the picture; a rejected reading is dropped. FACT_CHECK=0 skips
+that check. A failure for a hit falls back to REVIEW / INSUFFICIENT_DATA.
 """
 
 import json
@@ -16,6 +18,7 @@ if HERE not in sys.path:
 
 from customers import People, is_person  # noqa: E402
 from decide import compare  # noqa: E402
+import fact_check  # noqa: E402
 import hits as hitmod  # noqa: E402
 from load import Data  # noqa: E402
 from names import NameRules  # noqa: E402
@@ -35,8 +38,32 @@ def limit_sentences(sentences):
     return " ".join(out)
 
 
-def decide_hit(hit, alert, routes, screened, pics, rules, trace):
-    h = hitmod.picture(hit, None if False else DATA)
+def gather_reads(data, people, checker):
+    """Walk every opened note and search result so the checker can queue them, then ask the model."""
+    checker.mode = fact_check.COLLECT
+    for alert_id in sorted(data.hits_of_alert):
+        alert = data.alert.get(alert_id, {})
+        try:
+            _routes, screened, persons = people.resolve(alert) if alert else ([], {}, [])
+        except Exception:
+            continue
+        for person in persons:
+            try:
+                people.picture(person, screened)
+            except Exception:
+                continue
+        for hid in sorted(data.hits_of_alert[alert_id]):
+            try:
+                hitmod.submit_reads(data.hit[hid], data, checker)
+            except Exception:
+                continue
+    asked = checker.flush()
+    checker.mode = fact_check.ENFORCE
+    return asked
+
+
+def decide_hit(hit, alert, routes, screened, pics, rules, trace, checker=None):
+    h = hitmod.picture(hit, DATA, checker)
     screened_at = parse_date(alert.get("screened_at")) if alert else None
     trace["hit"] = {k: h[k] for k in ("names", "countries", "dates", "dob_origin", "sr", "death", "report")}
     if not pics:
@@ -90,8 +117,12 @@ def main(argv):
     start = time.time()
     DATA = Data(folder)
     rules = NameRules(folder)
-    people = People(DATA, rules)
+    checker = fact_check.maybe_checker()
+    people = People(DATA, rules, checker=checker)
     sys.stderr.write("loaded in %.1fs\n" % (time.time() - start))
+    if checker:
+        asked = gather_reads(DATA, people, checker)
+        sys.stderr.write("fact-checked %d new readings\n" % asked)
     lines, traces = {}, []
     for alert_id in sorted(DATA.hits_of_alert):
         alert = DATA.alert.get(alert_id, {})
@@ -108,7 +139,7 @@ def main(argv):
             trace = {"hit_id": hid, "alert_id": alert_id, "routes": routes,
                      "people": [p["records"] for p in persons]}
             try:
-                out = decide_hit(DATA.hit[hid], alert, routes, screened, pics, rules, trace)
+                out = decide_hit(DATA.hit[hid], alert, routes, screened, pics, rules, trace, checker)
                 line = {"hit_id": hid, "alert_id": DATA.hit[hid].get("alert_id") or alert_id}
                 line.update(out)
                 line["evidence"] = sorted(set(line["evidence"]))
