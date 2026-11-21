@@ -172,6 +172,6 @@ The model does not choose a decision or write the reason. `fill_model_facts.py` 
 | Death in prose | `deceased_date` is empty and the profile uses a death word | 9 hits |
 | Age | No listed date and no pattern age, and the first paragraph or a listing snippet contains a number | 220 profiles, 1 snippet |
 
-An age is used only when the hit has no listed date and no pattern age. An extra age is not added beside a date the pattern already found, because one agreeing year would block a real mismatch. A date inside "Regarding the … investigation" is the subject of the case, not the date the person was that age, so it is not used. A model country counts only when the same sentence says the customer stayed, lived, resided, settled, or was domiciled there. Work or a location on its own does not.
+An age is used only when the hit has no listed date and no pattern age. An extra age is not added beside a date the pattern already found, because one agreeing year would block a real mismatch. A date inside "Regarding the … investigation" is the subject of the case, not the date the person was that age, so it is not used. A model country counts when the quote names the country. The verb does not matter.
 
 Dated reports, listing phrases, structured fields, name comparison, the decision order, and the reason sentences stay in Python.

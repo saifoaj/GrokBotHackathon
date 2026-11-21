@@ -533,14 +533,50 @@ def death_before(dob, screened):
     return died is not None and died < screened
 
 
+PROFILE_DOB_LINE = re.compile(r"(?im)^\s*(?:DOB|Date of birth)\s*:\s*(.+?)\s*$")
+
+
+def parse_profile_dob(value):
+    """A profile DOB line. Slash dates are ambiguous, so an unclear order keeps only the year."""
+    text = str(value or "").strip()
+    match = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", text)
+    if not match:
+        return parse_dob(text)
+    first, second, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
+    if first > 12 and second <= 12:
+        month, day = second, first
+    elif second > 12 and first <= 12:
+        month, day = first, second
+    elif first <= 12 and second <= 12:
+        return year, None, None
+    else:
+        return None
+    if not 1 <= month <= 12 or not 1 <= day <= 31:
+        return None
+    return year, month, day
+
+
+def profile_dob_lines(text):
+    found = []
+    for match in PROFILE_DOB_LINE.finditer(text or ""):
+        parsed = parse_profile_dob(match.group(1))
+        if parsed and parsed not in found:
+            found.append(parsed)
+    return found
+
+
 def hit_birth_dates(hit, search_results, book=None):
-    """Birth dates from dobs, then an age in the first paragraph, then a listing search result."""
+    """Birth dates from dobs, a DOB line in the profile, an age, then a listing search result."""
     company = (hit.get("entity_type") or "") == "Company"
     listed = []
     for raw in hit.get("dobs") or []:
         parsed = parse_partial(raw)
-        if parsed:
+        if parsed and parsed not in listed:
             listed.append(parsed)
+    if not company:
+        for parsed in profile_dob_lines(hit.get("profile_notes")):
+            if parsed not in listed:
+                listed.append(parsed)
     ages = [] if company else birth_years_from_ages(first_paragraph(hit.get("profile_notes")), False)
     if not listed and not ages and not company and book is not None:
         ages = book.profile_age_pairs(hit)
@@ -577,6 +613,11 @@ def describe_hit_dates(hit, kind):
         parsed = parse_partial(raw)
         if parsed:
             listed.append(fmt_date(parsed))
+    if (hit.get("entity_type") or "") != "Company":
+        for parsed in profile_dob_lines(hit.get("profile_notes")):
+            label = fmt_date(parsed)
+            if label not in listed:
+                listed.append(label)
     ages = []
     if (hit.get("entity_type") or "") != "Company":
         ages = birth_years_from_ages(first_paragraph(hit.get("profile_notes")), False)

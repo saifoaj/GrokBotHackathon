@@ -23,10 +23,6 @@ from find_customers import MONTHS, PLACEHOLDERS, fold, name_parts
 
 KNOWN_COUNTRIES = set(ALIASES.values())
 DEATH_WORD = re.compile(r"\bdied\b|\bdeath\b|\bdeceased\b|passed away|\bkilled\b", re.I)
-RESIDENCE_WORD = re.compile(
-    r"\b(?:stay(?:ed|ing)?|lived|living|resid\w*|settl\w*|domicil\w*|\bhome\b|based|dwelt|dwelling)\b",
-    re.I,
-)
 GROUP_DEATH = re.compile(r"\b(?:people|persons|victims|individuals|residents|civilians|patients)\b", re.I)
 YEAR_IN_TEXT = re.compile(r"\b(?:19|20)\d{2}\b")
 
@@ -72,23 +68,8 @@ def _known_country(value, quote):
     return None
 
 
-def _sentence_with(text, quote):
-    source = _squash(text)
-    snippet = _squash(quote)
-    index = source.find(snippet)
-    if index < 0:
-        return ""
-    start = max(source.rfind(mark, 0, index) for mark in ".!?")
-    end = len(source)
-    for mark in ".!?":
-        at = source.find(mark, index + len(snippet))
-        if at >= 0:
-            end = min(end, at)
-    return source[start + 1:end]
-
-
 def countries_from_quote(quote, claimed, text):
-    if not quote_in(text, quote) or not RESIDENCE_WORD.search(_sentence_with(text, quote)):
+    if not quote_in(text, quote):
         return []
     found = []
     for key in countries_in_text(quote):

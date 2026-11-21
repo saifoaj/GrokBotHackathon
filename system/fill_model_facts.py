@@ -294,11 +294,11 @@ def _ask(settings, instruction, payload, label):
 
 
 LIVED_INSTRUCTION = (
-    "You read bank notes. For each note, list a country only when the customer themselves lived, "
-    "resided, was based, or settled there. Skip a visit, a phone call, a counterparty, a document office, "
-    "or a news story. The quote must be an exact contiguous copy from the note. "
+    "You read bank notes. List each country the note ties to the customer. "
+    "Do not require a particular verb: the note may say lived, worked, stayed, or some other word. "
+    "The quote must be an exact contiguous copy from the note. "
     'Reply with JSON only: {"notes": [{"id": "NOTE-XXXXXX", "lived": [{"quote": "...", "country": "France"}]}]}. '
-    "Use an empty lived list when the note does not say where the customer lived."
+    "Use an empty lived list when the note names no country for the customer."
 )
 IDENTITY_INSTRUCTION = (
     "Each note is a passed identity check. Extract the legal name, date of birth, and document country "

@@ -18,8 +18,7 @@ from gather_sources import SourceIndex, gather
 
 INSTRUCTION = (
     "You check extracted facts against the full source text. supported is true only when the text itself says the claim. "
-    "A country counts as lived only when this customer lived, resided, was based, settled, domiciled, or had their home there. "
-    "Work, a visit, a phone call, a document office, or another person does not count. "
+    "A country counts when the note ties that country to this customer, whatever verb it uses. "
     "An age counts only when it is that named person's age at that date. A sentence, a fine, a case number, or someone else's age does not. "
     "Someone aged N in year Y was born in Y-N or Y-N-1. Say supported false if the birth years are not those two years. "
     "A date of birth counts only when the text calls it a birth date. A document country counts only when the identity document is from that country. "

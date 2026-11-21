@@ -16,7 +16,13 @@ ROOT = os.path.dirname(SYSTEM)
 sys.path.insert(0, SYSTEM)
 
 import decide_hits  # noqa: E402
-from decide_hits import canon_country, lived_countries, location_status, note_verified  # noqa: E402
+from decide_hits import (  # noqa: E402
+    canon_country,
+    lived_countries,
+    location_status,
+    note_verified,
+    parse_profile_dob,
+)
 from find_customers import country_key, fold  # noqa: E402
 
 # Hand rewrites of development notes and profiles: synonyms, other date
@@ -91,6 +97,18 @@ class Countries(unittest.TestCase):
         self.assertIsNone(canon_country("Narnia"))
         self.assertEqual(location_status([], ["france"]), "unknown")
         self.assertEqual(location_status(["germany"], ["france"]), "differ")
+
+
+class ProfileDobs(unittest.TestCase):
+    def test_slash_order(self):
+        self.assertEqual(parse_profile_dob("6/20/1955"), (1955, 6, 20))
+        self.assertEqual(parse_profile_dob("20/6/1955"), (1955, 6, 20))
+        self.assertEqual(parse_profile_dob("6/5/1955"), (1955, None, None))
+        self.assertIsNone(parse_profile_dob("13/32/1955"))
+
+    def test_other_formats_use_the_ordinary_parser(self):
+        self.assertEqual(parse_profile_dob("April 10, 1960"), (1960, 4, 10))
+        self.assertEqual(parse_profile_dob("10 April 1960"), (1960, 4, 10))
 
 
 class Notes(unittest.TestCase):
