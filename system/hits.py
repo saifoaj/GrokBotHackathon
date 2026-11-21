@@ -38,15 +38,14 @@ def born_date(text):
     """
     for m in BORN.finditer(text or ""):
         tail = text[m.end():m.end() + 40]
+        sl = re.match(r"\s*(\d{1,2})[/.](\d{1,2})[/.](\d{4})", tail)
+        if sl:
+            # The provider's day/month order is not stated. Reading "6/20/1955" as June would let a
+            # month difference clear the hit (cost 60 if wrong), so only the year is used.
+            return (int(sl.group(3)), None, None)
         dates = find_dates(tail, years=True)
         if dates and dates[0][0] <= 2:
-            s, e, d = dates[0]
-            if "/" in tail[s:e] or "." in tail[s:e]:
-                d = (d[0], None, None)
-            return d
-        sl = re.match(r"(\d{1,2})[/.](\d{1,2})[/.](\d{4})", tail)
-        if sl:
-            return (int(sl.group(3)), None, None)
+            return dates[0][2]
     return None
 _MONTHS = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September",
            "October", "November", "December"]
@@ -91,10 +90,52 @@ def hit_countries(hit):
     return sorted(found)
 
 
+OTHER_PERSON = re.compile(r"\b(lawyer|attorney|counsel|solicitor|barrister|judge|magistrate|prosecutor|partner|"
+                          r"associate|accomplice|co-?defendant|wife|husband|spouse|son|daughter|brother|sister|"
+                          r"father|mother|parent|child|cousin|uncle|aunt|nephew|niece|victim|witness|spokes\w*|"
+                          r"employee|assistant|driver|bodyguard|friend|neighbou?r)\b", re.I)
+
+
+def hit_age_years(paragraph, names):
+    """Age-at-a-date sentences that are about the hit: they name the hit and mention nobody else."""
+    parts = set()
+    for n in names:
+        parts.update(w for w in re.split(r"[^\w]+", strip_accents(n).lower()) if len(w) > 2)
+    for sentence in re.split(r"(?<=[.!?])\s+", paragraph or ""):
+        if OTHER_PERSON.search(sentence):
+            continue
+        words = set(w for w in re.split(r"[^\w]+", strip_accents(sentence).lower()) if w)
+        if parts and not parts & words:
+            continue
+        years = age_years(sentence)
+        if years:
+            return years
+    return None
+
+
+_UNITS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+          "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+          "seventeen": 17, "eighteen": 18, "nineteen": 19}
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80,
+         "ninety": 90}
+_NUMBER_WORDS = re.compile(r"\b(%s)(?:[\s-]+(%s))?\b|\b(%s)\b" % ("|".join(_TENS), "|".join(_UNITS),
+                                                                       "|".join(_UNITS)), re.I)
+
+
+def words_to_numbers(text):
+    """'aged fifty-two' -> 'aged 52' (ages written as words)."""
+    def repl(m):
+        if m.group(1):
+            return str(_TENS[m.group(1).lower()] + (_UNITS[m.group(2).lower()] if m.group(2) else 0))
+        return str(_UNITS[m.group(3).lower()])
+    return _NUMBER_WORDS.sub(repl, text)
+
+
 def age_years(text):
     """From an age at a date ("aged 45 in March 2019"), the two possible birth years."""
     if not text:
         return None
+    text = words_to_numbers(text)
     age = None
     for pattern in AGE_PATTERNS:
         m = pattern.search(text)
@@ -187,6 +228,9 @@ def picture(hit, data):
         d = parse_date(value)
         if d:
             pic["dates"].append(d)
+        else:  # "c. 1960", "1958/1959", "1960 (approx.)": every year it names is a possible birth year
+            for y in re.findall(r"(?<!\d)(1[89]\d\d|20\d\d)(?!\d)", value):
+                pic["dates"].append((int(y), None, None))
     if pic["dates"]:
         pic["dob_origin"] = "listed"
     notes = hit.get("profile_notes") or ""
@@ -194,7 +238,7 @@ def picture(hit, data):
         first = re.split(r"\n\s*\n", notes.strip(), maxsplit=1)[0]
         news = first.lstrip().lower().startswith("according to")
         born = None if news else born_date(first)
-        years = None if news or born else age_years(first)
+        years = None if news or born else hit_age_years(first, pic["names"])
         if born:
             pic["dates"] = [born]
             pic["dob_origin"] = "profile_date"

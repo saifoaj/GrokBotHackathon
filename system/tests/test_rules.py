@@ -77,7 +77,14 @@ class Dates(unittest.TestCase):
         self.assertEqual(age_years("someone aged 45 in March 2019"), [1973, 1974])
         self.assertEqual(age_years("When questioned in January 2023, he was 46."), [1976, 1977])
         self.assertEqual(born_date("X was born on 17 July 1939."), (1939, 7, 17))
-        self.assertEqual(born_date("DOB: 6/20/1955"), (1955, None, None))
+        self.assertEqual(born_date("DOB: 6/20/1955"), (1955, None, None))   # order not stated: year only
+        self.assertEqual(born_date("DOB: 05/06/1955"), (1955, None, None))
+        self.assertEqual(age_years("questioned, aged fifty-two, in May 2011"), [1958, 1959])
+
+    def test_age_of_someone_else_is_ignored(self):
+        from hits import hit_age_years
+        self.assertIsNone(hit_age_years("Ann Lee's lawyer, aged 61, spoke in May 2019.", ["Ann Lee"]))
+        self.assertEqual(hit_age_years("Ann Lee, aged 61, was charged in May 2019.", ["Ann Lee"]), [1957, 1958])
 
 
 class Countries(unittest.TestCase):

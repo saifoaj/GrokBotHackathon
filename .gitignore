@@ -7,3 +7,7 @@ __pycache__/
 *.pyc
 debug/
 .DS_Store
+stress/data/
+stress/data_hard/
+stress/*.jsonl
+stress/*.zip

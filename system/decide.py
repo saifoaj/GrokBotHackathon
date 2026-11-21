@@ -134,7 +134,8 @@ def compare(pic, h, rules, screened_at):
     cset, hset = set(pic["countries"]), set(h["countries"])
     shared = sorted(cset & hset)
     import countries as _c
-    all_known = all(_c.known(x) for x in hset)
+    # a place we cannot recognise as a country (either side) makes the location test unknown
+    all_known = all(_c.known(x) for x in hset) and all(_c.known(x) for x in cset)
     if cset and hset and not shared and all_known:
         if not (name_agree and dob_agree):
             ev = sorted(set(pic["records"]) | {s for v in pic["countries"].values() for s in v})
@@ -164,7 +165,7 @@ def compare(pic, h, rules, screened_at):
     base_ev = list(pic["records"])
     if pic["latest_check"]:
         base_ev.append(pic["latest_check"])
-    location_conflict = bool(cset and hset and not shared)
+    location_conflict = bool(cset and hset and not shared and all_known)
     if location_conflict:
         facts.append("The customer is linked only to %s but the hit is linked only to %s; a country difference "
                      "does not clear a hit whose name and date of birth agree." %

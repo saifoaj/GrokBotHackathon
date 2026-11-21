@@ -14,7 +14,17 @@ from load import approved, low
 from norm import find_dates, parse_date, phone_key
 
 NEGATIVE = re.compile(r"\b(reject\w*|expire\w*|fail\w*|declin\w*|unsuccessful|denied|not (?:approved|verified|"
-                      r"passed|valid)|could not|unable|mismatch\w*|invalid|suspend\w*|revok\w*)\b", re.I)
+                      r"passed|valid|completed?|confirmed|cleared)|could not|unable|mismatch\w*|non-?match\w*|"
+                      r"(?:did|does|do) not match|no match|invalid|suspend\w*|revok\w*|on hold|pending|awaiting|"
+                      r"abandon\w*|timed? ?out|incomplete|unverified|manual review|under review|resubmit\w*|"
+                      r"retry|refer(?:red)? to|escalat\w*|withdrawn|cancel\w*|inconclusive|unreadable|blurr\w*|"
+                      r"suspicious|fraudulent|forged|tamper\w*)\b", re.I)
+POSITIVE = re.compile(r"\b(verif\w*|validat\w*|clear\w*|confirm\w*|pass\w*|approv\w*|success\w*|complete\w*|"
+                      r"vetted|authenticat\w*|match(?:es|ed)?|ok|accepted|processed)\b", re.I)
+LIVED = re.compile(r"\b(lived|living|live[sd]?|resid\w*|stay\w*|based|home|flat|apartment|house|moved|relocat\w*|"
+                   r"spent|settled|grew up|emigrat\w*|immigrat\w*|years? in|rent(?:ed|ing)?|lease[sd]?|"
+                   r"tenan\w*|kept|worked|working|employ(?:ed|ment)|job in|studied|born in)\b", re.I)
+UNPLACED = "Unplaced residence (named in notes)"
 CAPS_STOP = {"ID", "DOB", "KYC", "PASSED", "OK", "AML", "PEP", "UK", "US", "USA", "UAE", "EU", "SAR",
              "CDD", "EDD", "IDV", "APPROVED", "VERIFIED", "CLEARED", "CONFIRMED", "SUCCESS", "COMPLETE", "PASS",
              "II", "III", "IV", "NFC", "MRZ"}
@@ -34,7 +44,7 @@ def parse_kyc_note(note):
     """
     text = note.get("text") or ""
     created = parse_date(note.get("created_at"))
-    if NEGATIVE.search(text):
+    if NEGATIVE.search(text) or not POSITIVE.search(text):
         return {"approved": False}
     # name: the longest run of capitalised words (the provider writes the legal name in capitals)
     runs, current, spans, start = [], [], [], None
@@ -313,8 +323,13 @@ class People:
             for n in self.data.notes_by_email.get(email, []) if email else []:
                 if str(n.get("channel") or "").lower() == "kyc":
                     continue
-                for country in countries.find_in_text(n.get("text")):
+                text = n.get("text") or ""
+                found = countries.find_in_text(text)
+                for country in found:
                     out.setdefault(country, set()).add(n["note_id"])
+                if not found and LIVED.search(text):
+                    # the note says they lived somewhere, but not in a country we can name
+                    out.setdefault(UNPLACED, set()).add(n["note_id"])
         return {k: sorted(v) for k, v in sorted(out.items())}
 
     def picture(self, person, screened):

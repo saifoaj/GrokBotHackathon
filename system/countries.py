@@ -219,6 +219,56 @@ _TABLE = {
     "Suriname": ["SR", "Surinamese"],
 }
 
+# Names and nationality words in the country's own language.
+_LOCAL = {
+    "Germany": ["Deutschland", "Deutsch", "Deutsche", "Deutscher", "Bundesrepublik Deutschland"],
+    "Spain": ["España", "Espana", "Española", "Español", "Espanola", "Espanol"],
+    "Austria": ["Österreich", "Osterreich", "Österreichisch", "Österreicher"],
+    "Poland": ["Polska", "Polski", "Polskie"],
+    "Sweden": ["Sverige", "Svensk", "Svenska"],
+    "Italy": ["Italia", "Italiana", "Italiano"],
+    "Norway": ["Norge", "Noreg", "Norsk"],
+    "Greece": ["Ellada", "Hellas", "Ellinikí", "Elliniki", "Hellenic Republic"],
+    "Finland": ["Suomi", "Suomalainen"],
+    "Denmark": ["Danmark", "Dansk"],
+    "Netherlands": ["Nederland", "Nederlands", "Nederlandse"],
+    "Switzerland": ["Schweiz", "Suisse", "Svizzera", "Svizra", "Confoederatio Helvetica", "Helvetia"],
+    "Brazil": ["Brasil", "Brasileiro", "Brasileira"],
+    "Peru": ["Perú", "Peruano", "Peruana"],
+    "Mexico": ["México", "Mexicano", "Mexicana"],
+    "Ireland": ["Éire", "Eire"],
+    "Croatia": ["Hrvatska"],
+    "Hungary": ["Magyarország", "Magyarorszag", "Magyar"],
+    "Czech Republic": ["Česko", "Cesko", "Česká republika", "Ceska republika"],
+    "France": ["République française", "Republique francaise", "Française", "Francaise", "Français", "Francais"],
+    "Portugal": ["Português", "Portugues", "Portuguesa"],
+    "Romania": ["România", "Român", "Română"],
+    "Turkey": ["Türk"],
+    "Japan": ["Nippon", "Nihon"],
+    "China": ["Zhongguo"],
+    "Russia": ["Rossiya", "Rossiia"],
+    "Ukraine": ["Ukraina", "Ukrayina"],
+    "Belgium": ["België", "Belgie", "Belgique", "Belgien"],
+    "Iceland": ["Ísland"],
+    "Lithuania": ["Lietuva"],
+    "Latvia": ["Latvija"],
+    "Estonia": ["Eesti"],
+    "Slovenia": ["Slovenija"],
+    "Slovakia": ["Slovensko"],
+    "Serbia": ["Srbija"],
+    "Bulgaria": ["Bulgariya", "Balgariya"],
+    "Egypt": ["Misr"],
+    "Morocco": ["Maroc", "Al-Maghrib"],
+    "Algeria": ["Algérie", "Algerie"],
+    "Cote D'Ivoire": ["Côte d’Ivoire"],
+    "Chile": ["Chileno", "Chilena"],
+    "Colombia": ["Colombiano", "Colombiana"],
+    "Argentina": ["Argentino", "Argentina"],
+}
+for _name, _aliases in sorted(_LOCAL.items()):
+    _TABLE.setdefault(_name, [])
+    _TABLE[_name] = _TABLE[_name] + [a for a in _aliases if a not in _TABLE[_name]]
+
 NOT_COUNTRIES = {"international", "europe", "global", "worldwide", "unknown", "none", "n/a", "na", "africa",
                  "asia", "middle east", "latin america", "eu", "european union"}
 
