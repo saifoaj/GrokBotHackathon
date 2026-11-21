@@ -8,6 +8,13 @@ python system/decide_hits.py <data folder> <output.jsonl>
 
 `system/run` is the same entry point. One line per hit, in the shape of `output.schema.json`: `hit_id`, `alert_id`, `decision`, `reason_code`, `customer_record_id`, `reason`, `evidence`.
 
+```
+python -m unittest discover -s system/tests
+scripts/shuffle5.sh dev system
+```
+
+The unit tests reword real notes and profiles and check that a decision does not move to `DIFFERENT_ENTITY`. `scripts/shuffle5.sh` reruns on shuffled copies and checks that the file is identical.
+
 The run is three steps inside `decide()`:
 
 1. `find_customers.py` resolves the customer behind each alert.
@@ -112,7 +119,7 @@ Declared record dates of birth are used only when no verified date exists. They 
 
 An age next to a date always yields two years: the stated year minus the age, and that year minus one more. The date must sit within 240 characters. A number that is the day of the nearby date is skipped. Profile ages use `aged N`, `age of N`, `N-year-old`, `N year(s) old`, `was N` (not followed by years, months, or days), and `Age: N`. Search snippets also allow a bare `Name, NN,` or `NN, Name` for ages 10 to 99. A company uses only `dobs`.
 
-**Customer countries.** Residence and nationality on every record in the cluster, the document country from the latest approved source, and countries in non-KYC notes that both name a country and contain a lived-in cue: `resid`, `lived`, `living`, `dwelling`, `household`, `housing`, `home`, or `based`. The screened country is not a customer country. Prose matching ignores aliases shorter than four letters with no space, so `it`, `us`, and `in` stay ordinary words. Structured fields still accept codes.
+**Customer countries.** Residence and nationality on every record in the cluster, the document country from the latest approved source, and any country named in a non-KYC note. A country that is not in the ISO table is unknown, so it does not clear the hit. Territories stay separate: Hong Kong is not China. The screened country is not a customer country. Prose matching ignores aliases shorter than four letters with no space, so `it`, `us`, and `in` stay ordinary words. Structured fields still accept codes.
 
 **Dated reports.** Exactly `According to …; Month D, YYYY:` with the colon. A semicolon after the date does not count. The earliest such date is the one that matters. Other wordings are ignored. This form is stable on the unseen set.
 
@@ -156,11 +163,11 @@ The reason is filled from those facts with fixed sentences, so two runs match ch
 
 The model does not choose a decision or write the reason. `fill_model_facts.py` asks it only where a pattern returned nothing, on records already tied to a hit. The reply has to quote a contiguous span of the source. `facts_store.py` drops the fact when that quote is not in the text, or when the country, name, age, or date is not in the quote. Accepted facts are written to `facts.json` and checkpointed in `output/model_facts.json`. The next run reads them and does not ask again.
 
-`GROK_API_KEY` in `.env` calls the xAI API with `grok-4.20-0309-non-reasoning`. When the grader sets `OPENROUTER_API_KEY`, the same call goes to OpenRouter instead. `GROK_MODEL` overrides the model id. Temperature is 0. With no key, the gaps stay unknown and the hit stays in review.
+`GROK_API_KEY` in `.env` calls the xAI API with `grok-4.20-0309-non-reasoning`. When the grader sets `OPENROUTER_API_KEY`, the same call goes to OpenRouter with `x-ai/grok-4.20-0309-non-reasoning`. `GROK_MODEL` overrides the model id. Temperature is 0. The model stage stops after 20 minutes. If a call fails, the key is missing, or the clock runs out, a clear that depended on an unanswered gap stays in review.
 
 | Gap | Asked when | On this development set |
 |---|---|---|
-| Place lived | A non-KYC note names a country and the lived-in cue does not match | 6 notes |
+| Place lived | A non-KYC note names a country the table did not resolve | none, once the note's countries are read |
 | Passed KYC note | A passed note is missing a legal name, date of birth, or document country the patterns can read | 9 notes |
 | Death in prose | `deceased_date` is empty and the profile uses a death word | 9 hits |
 | Age | No listed date and no pattern age, and the first paragraph or a listing snippet contains a number | 220 profiles, 1 snippet |

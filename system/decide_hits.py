@@ -29,56 +29,6 @@ from pathlib import Path
 from find_customers import COUNTRIES, MONTHS, country_key, fold, parse_dob
 from gather_sources import NOT_COUNTRIES, CustomerSearch, SourceIndex, gather, hit_countries
 
-# Country names and demonyms that the structured country table does not list.
-# Two-letter codes are intentionally absent: in a sentence, "it" and "us" are
-# ordinary words. Structured fields still accept codes through country_key.
-EXTRA_COUNTRIES = {
-    "sweden": "sweden", "swedish": "sweden",
-    "china": "china", "chinese": "china",
-    "iran": "iran", "iranian": "iran",
-    "jordan": "jordan", "jordanian": "jordan",
-    "iraq": "iraq", "iraqi": "iraq",
-    "japan": "japan", "japanese": "japan",
-    "nicaragua": "nicaragua", "nicaraguan": "nicaragua",
-    "turkey": "turkey", "turkish": "turkey", "turkiye": "turkey",
-    "luxembourg": "luxembourg",
-    "uganda": "uganda", "ugandan": "uganda",
-    "egypt": "egypt", "egyptian": "egypt",
-    "south korea": "south korea", "korean": "south korea",
-    "belgium": "belgium", "belgian": "belgium",
-    "latvia": "latvia", "latvian": "latvia",
-    "afghanistan": "afghanistan", "afghan": "afghanistan",
-    "sudan": "sudan", "sudanese": "sudan",
-    "trinidad and tobago": "trinidad and tobago",
-    "azerbaijan": "azerbaijan",
-    "somalia": "somalia", "somali": "somalia",
-    "bosnia and herzegovina": "bosnia and herzegovina", "bosnia": "bosnia and herzegovina",
-    "venezuela": "venezuela", "venezuelan": "venezuela",
-    "estonia": "estonia", "estonian": "estonia",
-    "iceland": "iceland", "icelandic": "iceland",
-    "uruguay": "uruguay", "uruguayan": "uruguay",
-    "ethiopia": "ethiopia", "ethiopian": "ethiopia",
-    "kosovo": "kosovo",
-    "malaysia": "malaysia", "malaysian": "malaysia",
-    "philippines": "philippines", "philippine": "philippines", "filipino": "philippines",
-    "puerto rico": "puerto rico",
-    "palestine": "palestine", "palestina": "palestine", "palestinian": "palestine",
-    "kuwait": "kuwait", "kuwaiti": "kuwait",
-    "costa rica": "costa rica",
-    "bahrain": "bahrain",
-    "liechtenstein": "liechtenstein",
-    "albania": "albania", "albanian": "albania",
-    "croatia": "croatia", "croatian": "croatia",
-    "paraguay": "paraguay",
-    "northern mariana islands": "northern mariana islands",
-    "ukraine": "ukraine", "ukrainian": "ukraine",
-    "greece": "greece", "greek": "greece",
-    "taiwan": "taiwan",
-    "hong kong": "hong kong",
-    "syria": "syria",
-    "lebanon": "lebanon",
-}
-
 DATED_REPORT = re.compile(
     r"According to [^;\n]+;\s+"
     r"(January|February|March|April|May|June|July|August|September|October|November|December)"
@@ -97,15 +47,12 @@ BARE_AGE = (
     re.compile(r"(?<!\d)(\d{1,2}),\s+[A-ZÀ-ÖØ-Þ]"),
 )
 NOTE_FAIL = re.compile(
-    r"reject|expired|unsuccessful|could not|failed to|not approved|not verified",
+    r"not approved/verified|not approved|not verified|unverif|reject|expired|unsuccessful|"
+    r"could not|failed to|declin|pending|awaiting|unable|denied|inconclusive|\bfail",
     re.I,
 )
 NOTE_PASS = re.compile(
     r"verif|validat|approv|confirm|cleared|passed|\bpass\b|vetted|successful|check complete|completed|matches",
-    re.I,
-)
-LIVED = re.compile(
-    r"resid|lived|living|dwelling|household|housing|\bhome\b|\bbased\b",
     re.I,
 )
 NAME_SKIP = {"dob", "id", "na", "xxx", "usa", "uk", "gb", "eu"}
@@ -113,8 +60,9 @@ MONTH_WORD = "|".join(sorted(MONTHS, key=len, reverse=True))
 
 
 def build_aliases():
+    """Prose forms only. A code shorter than four letters stays out of sentences."""
     alias = {}
-    for form, canonical in list(COUNTRIES.items()) + list(EXTRA_COUNTRIES.items()):
+    for form, canonical in COUNTRIES.items():
         if form in NOT_COUNTRIES or canonical in NOT_COUNTRIES:
             continue
         if len(form) < 4 and " " not in form:
@@ -141,11 +89,8 @@ def canon_country(value):
             if any(char.isdigit() for char in part):
                 continue
             key = country_key(part)
-            if not key or key in NOT_COUNTRIES:
-                continue
-            mapped = ALIASES.get(key, key)
-            if mapped not in NOT_COUNTRIES:
-                return mapped
+            if key and key not in NOT_COUNTRIES:
+                return key
     return None
 
 
@@ -214,7 +159,8 @@ def document_country(text):
 
 
 def lived_countries(text):
-    if not text or not LIVED.search(text):
+    """Any country in a non-KYC note. The caller skips KYC notes. No cue word is required."""
+    if not text:
         return []
     return countries_in_text(text)
 
@@ -1025,6 +971,30 @@ def decide_row(matcher, row, book=None):
     }
 
 
+# A missing model answer can hide the fact that would have blocked the clear.
+CLEARS_BLOCKED_BY = {
+    "LOCATION_MISMATCH": {"lived", "identity", "age"},
+    "DOB_MISMATCH": {"identity", "age"},
+    "TEMPORAL_IMPOSSIBILITY": {"identity"},
+    "NAME_MISMATCH_VERIFIED": {"identity"},
+}
+
+
+def hold_unanswered(row, kinds):
+    if row["decision"] != "DIFFERENT_ENTITY":
+        return row
+    blocking = CLEARS_BLOCKED_BY.get(row["reason_code"], ())
+    if not set(blocking) & set(kinds):
+        return row
+    held = dict(row)
+    held["decision"] = "REVIEW"
+    held["reason_code"] = "INSUFFICIENT_DATA"
+    held["reason"] = (
+        "A fact that could reverse this clear was not returned by the model, so the hit stays in review."
+    )
+    return held
+
+
 def decide(data_dir, facts_path=None):
     search = CustomerSearch(data_dir)
     sources = SourceIndex(data_dir)
@@ -1032,9 +1002,14 @@ def decide(data_dir, facts_path=None):
     from facts_store import FactBook
     from fill_model_facts import fill_gaps
     book = FactBook.load(facts_path)
+    unanswered = {}
     if facts_path:
-        fill_gaps(rows, book, facts_path)
-    return [decide_row(search.names, row, book) for row in rows]
+        unanswered = fill_gaps(rows, book, facts_path) or {}
+    decided = []
+    for row in rows:
+        outcome = decide_row(search.names, row, book)
+        decided.append(hold_unanswered(outcome, unanswered.get(outcome["hit_id"], ())))
+    return decided
 
 
 def main():

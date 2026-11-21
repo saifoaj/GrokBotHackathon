@@ -16,7 +16,6 @@ from pathlib import Path
 from decide_hits import (
     AGE_PATTERNS,
     BARE_AGE,
-    LIVED,
     _month_dates,
     _nearest_date,
     caps_name,
@@ -103,7 +102,7 @@ def note_fact(row):
             "document_country": document_country(text) if passed else None,
             "lived_countries": [],
         }
-    lived = sorted(set(lived_countries(text))) if LIVED.search(text) else []
+    lived = sorted(set(lived_countries(text)))
     return {
         "note_id": row.get("note_id"),
         "channel": channel,

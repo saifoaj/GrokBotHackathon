@@ -23,6 +23,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from countries import NOT_COUNTRIES
 from find_customers import (
     COUNTRIES,
     CustomerSearch,
@@ -31,8 +32,6 @@ from find_customers import (
     read_jsonl,
     screened_view,
 )
-
-NOT_COUNTRIES = {"international", "europe"}
 LISTING_PHRASES = {
     "sanctions": "a sanctioned individual",
     "pep": "a politically exposed person",

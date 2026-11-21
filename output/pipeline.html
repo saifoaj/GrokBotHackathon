@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screening pipeline</title>
+<style>
+  :root {
+    --bg: #f3efe6;
+    --paper: #fffdf8;
+    --ink: #1d1a16;
+    --muted: #6d655c;
+    --line: #d9d0c3;
+    --cleared: #1e6b45;
+    --cleared-bg: #e5f3eb;
+    --same: #8d2f2a;
+    --same-bg: #f8e7e4;
+    --review: #8a5a12;
+    --review-bg: #f8efd8;
+    --fact: #2a4568;
+    --fact-bg: #e7eef6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.35 "Segoe UI", "Helvetica Neue", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 18px 48px; }
+  h1 { margin: 0 0 16px; font-size: 22px; font-weight: 600; }
+  h2 { margin: 26px 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  svg { display: block; width: 100%; height: auto; }
+  .box { fill: var(--paper); stroke: var(--line); }
+  .box-fact { fill: var(--fact-bg); stroke: #c5d3e4; }
+  .box-drop { fill: #f6efe6; stroke: #e2d3c0; }
+  .box-clear { fill: var(--cleared-bg); stroke: #b7d8c4; }
+  .box-same { fill: var(--same-bg); stroke: #e4c4c0; }
+  .box-hold { fill: var(--review-bg); stroke: #e6d3a8; }
+  .t { fill: var(--ink); font: 600 13px "Segoe UI", sans-serif; }
+  .s { fill: var(--muted); font: 12px "Segoe UI", sans-serif; }
+  .a { stroke: #8d847a; fill: none; stroke-width: 1.4; }
+  .scroll { overflow-x: auto; }
+  .gates {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .gate {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 92px;
+  }
+  .gate b { display: block; font-size: 13px; }
+  .gate em { font-style: normal; color: var(--fact); font-weight: 600; }
+  .gate span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+  .runs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: end; }
+  .run { text-align: center; }
+  .bar { height: 168px; display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .bar i { display: flex; align-items: center; justify-content: center; font-style: normal; color: #fff; font-size: 12px; font-weight: 600; }
+  .d { background: var(--cleared); height: 55.4%; }
+  .m { background: var(--same); height: 13.6%; }
+  .r { background: var(--review); height: 31%; }
+  .run small { display: block; margin-top: 6px; color: var(--muted); }
+  .mark { color: var(--fact); font-weight: 600; }
+  .legend { display: flex; gap: 14px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+  .legend b { font-weight: 600; }
+  .lg-d { color: var(--cleared); } .lg-m { color: var(--same); } .lg-r { color: var(--review); }
+  @media (max-width: 720px) {
+    .gates { grid-template-columns: 1fr 1fr; }
+    .runs { grid-template-columns: repeat(5, 92px); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Screening pipeline</h1>
+
+  <h2>One run</h2>
+  <div class="scroll">
+  <svg viewBox="0 0 1000 250" role="img" aria-label="Data goes to find customer, gather, then decide. Patterns feed gaps to Grok, then a quote check, then the decision.">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 1.2 L 8 5 L 0 8.8" fill="none" stroke="#8d847a" stroke-width="1.4"/>
+      </marker>
+    </defs>
+    <rect class="box" x="16" y="28" width="150" height="78" rx="8"/>
+    <text class="t" x="91" y="54" text-anchor="middle">Data</text>
+    <text class="s" x="91" y="74" text-anchor="middle">alerts · customers</text>
+    <text class="s" x="91" y="90" text-anchor="middle">kyc · notes · search</text>
+
+    <line class="a" x1="166" y1="67" x2="198" y2="67" marker-end="url(#arrow)"/>
+
+    <rect class="box" x="204" y="28" width="160" height="78" rx="8"/>
+    <text class="t" x="284" y="54" text-anchor="middle">1 · Find customer</text>
+    <text class="s" x="284" y="74" text-anchor="middle">account · login · email</text>
+    <text class="s" x="284" y="90" text-anchor="middle">else year, then country</text>
+
+    <line class="a" x1="364" y1="67" x2="396" y2="67" marker-end="url(#arrow)"/>
+
+    <rect class="box" x="402" y="28" width="160" height="78" rx="8"/>
+    <text class="t" x="482" y="54" text-anchor="middle">2 · Gather</text>
+    <text class="s" x="482" y="74" text-anchor="middle">records · checks · notes</text>
+    <text class="s" x="482" y="90" text-anchor="middle">listing search only</text>
+
+    <line class="a" x1="562" y1="67" x2="594" y2="67" marker-end="url(#arrow)"/>
+
+    <rect class="box" x="600" y="28" width="160" height="78" rx="8"/>
+    <text class="t" x="680" y="58" text-anchor="middle">3 · Decide</text>
+    <text class="s" x="680" y="78" text-anchor="middle">first clash wins</text>
+
+    <line class="a" x1="760" y1="67" x2="792" y2="67" marker-end="url(#arrow)"/>
+
+    <rect class="box" x="798" y="28" width="180" height="78" rx="8"/>
+    <text class="t" x="888" y="54" text-anchor="middle">output.jsonl</text>
+    <text class="s" x="888" y="74" text-anchor="middle">decision · code</text>
+    <text class="s" x="888" y="90" text-anchor="middle">customer · evidence</text>
+
+
+    <rect class="box" x="16" y="150" width="130" height="64" rx="8"/>
+    <text class="t" x="81" y="176" text-anchor="middle">Pattern</text>
+    <text class="s" x="81" y="194" text-anchor="middle">date · name · age</text>
+
+    <line class="a" x1="146" y1="182" x2="176" y2="182" marker-end="url(#arrow)"/>
+    <text class="s" x="161" y="172" text-anchor="middle">empty</text>
+
+    <rect class="box-fact" x="182" y="150" width="150" height="64" rx="8"/>
+    <text class="t" x="257" y="176" text-anchor="middle" fill="#2a4568">Grok · temp 0</text>
+    <text class="s" x="257" y="194" text-anchor="middle">JSON · exact quote</text>
+
+    <line class="a" x1="332" y1="182" x2="362" y2="182" marker-end="url(#arrow)"/>
+
+    <rect class="box-drop" x="368" y="150" width="150" height="64" rx="8"/>
+    <text class="t" x="443" y="176" text-anchor="middle">Keep or drop</text>
+    <text class="s" x="443" y="194" text-anchor="middle">fact must be in quote</text>
+
+    <line class="a" x1="518" y1="182" x2="548" y2="182" marker-end="url(#arrow)"/>
+
+    <rect class="box" x="554" y="150" width="170" height="64" rx="8"/>
+    <text class="t" x="639" y="176" text-anchor="middle">Check again</text>
+    <text class="s" x="639" y="194" text-anchor="middle">same tests at decision</text>
+
+    <line class="a" x1="639" y1="150" x2="680" y2="108" marker-end="url(#arrow)"/>
+  </svg>
+  </div>
+
+  <div class="gates" aria-label="What Grok is asked, and what drops the reply">
+    <div class="gate"><b>Lived</b><span>any country in the note</span></div>
+    <div class="gate"><b>Identity <em>9</em></b><span>2 name parts · dob/born · country in quote</span></div>
+    <div class="gate"><b>Death <em>9</em></b><span>death word · not a group</span></div>
+    <div class="gate"><b>Age <em>221</em></b><span>age and year in quote · two birth years</span></div>
+  </div>
+
+  <h2>First clash</h2>
+  <div class="scroll">
+  <svg viewBox="0 0 1000 430" role="img" aria-label="Decision order. The first contradiction clears the hit. A country clash stays in review when name and date of birth agree.">
+    <defs>
+      <marker id="out" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 1.2 L 8 5 L 0 8.8" fill="none" stroke="#8d847a" stroke-width="1.4"/>
+      </marker>
+    </defs>
+    <line class="a" x1="300" y1="18" x2="300" y2="412"/>
+
+    <rect class="box" x="40" y="8" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="29" text-anchor="middle">Person vs company</text>
+    <line class="a" x1="300" y1="24" x2="620" y2="24" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="8" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="29" text-anchor="middle" fill="#1e6b45">DIFFERENT · type</text>
+
+    <rect class="box" x="40" y="52" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="73" text-anchor="middle">Dead before screening</text>
+    <line class="a" x1="300" y1="68" x2="620" y2="68" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="52" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="73" text-anchor="middle" fill="#1e6b45">DIFFERENT · deceased</text>
+
+    <rect class="box" x="40" y="96" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="117" text-anchor="middle">Under 16 · or incorporated later</text>
+    <line class="a" x1="300" y1="112" x2="620" y2="112" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="96" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="117" text-anchor="middle" fill="#1e6b45">DIFFERENT · time</text>
+
+    <rect class="box" x="40" y="140" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="161" text-anchor="middle">Every birth date clashes</text>
+    <line class="a" x1="300" y1="156" x2="620" y2="156" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="140" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="161" text-anchor="middle" fill="#1e6b45">DIFFERENT · dob</text>
+
+    <rect class="box" x="40" y="184" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="205" text-anchor="middle">Verified name matches none</text>
+    <line class="a" x1="300" y1="200" x2="620" y2="200" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="184" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="205" text-anchor="middle" fill="#1e6b45">DIFFERENT · name</text>
+
+    <rect class="box" x="40" y="228" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="249" text-anchor="middle">Countries differ · name or dob open</text>
+    <line class="a" x1="300" y1="244" x2="620" y2="244" marker-end="url(#out)"/>
+    <rect class="box-clear" x="628" y="228" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="249" text-anchor="middle" fill="#1e6b45">DIFFERENT · country</text>
+
+    <rect class="box-hold" x="40" y="272" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="293" text-anchor="middle" fill="#8a5a12">Countries differ · name and dob agree</text>
+    <line class="a" x1="300" y1="288" x2="620" y2="288" marker-end="url(#out)"/>
+    <rect class="box-hold" x="628" y="272" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="293" text-anchor="middle" fill="#8a5a12">REVIEW · country stays</text>
+
+    <rect class="box" x="40" y="316" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="337" text-anchor="middle">Person · name + dob</text>
+    <line class="a" x1="300" y1="332" x2="620" y2="332" marker-end="url(#out)"/>
+    <rect class="box-same" x="628" y="316" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="337" text-anchor="middle" fill="#8d2f2a">SAME · person</text>
+
+    <rect class="box" x="40" y="360" width="260" height="32" rx="8"/>
+    <text class="t" x="170" y="381" text-anchor="middle">Company · name + country</text>
+    <line class="a" x1="300" y1="376" x2="620" y2="376" marker-end="url(#out)"/>
+    <rect class="box-same" x="628" y="360" width="330" height="32" rx="8"/>
+    <text class="t" x="793" y="381" text-anchor="middle" fill="#8d2f2a">SAME · company</text>
+
+    <rect class="box" x="40" y="396" width="260" height="28" rx="8"/>
+    <text class="t" x="170" y="415" text-anchor="middle">Else</text>
+    <line class="a" x1="300" y1="410" x2="620" y2="410" marker-end="url(#out)"/>
+    <rect class="box-hold" x="628" y="396" width="330" height="28" rx="8"/>
+    <text class="t" x="793" y="415" text-anchor="middle" fill="#8a5a12">REVIEW</text>
+  </svg>
+  </div>
+
+  <h2>Five runs · 819 hits · same decisions</h2>
+  <div class="legend"><span class="lg-d"><b>454</b> different</span><span class="lg-m"><b>111</b> same</span><span class="lg-r"><b>254</b> review</span></div>
+  <div class="runs" aria-label="Five runs with the same decision counts. Run 3 left three identity notes empty.">
+    <div class="run"><div class="bar"><i class="d">454</i><i class="m">111</i><i class="r">254</i></div><small>Run 1</small></div>
+    <div class="run"><div class="bar"><i class="d">454</i><i class="m">111</i><i class="r">254</i></div><small>Run 2</small></div>
+    <div class="run"><div class="bar"><i class="d">454</i><i class="m">111</i><i class="r">254</i></div><small class="mark">Run 3 · 3 notes empty</small></div>
+    <div class="run"><div class="bar"><i class="d">454</i><i class="m">111</i><i class="r">254</i></div><small>Run 4</small></div>
+    <div class="run"><div class="bar"><i class="d">454</i><i class="m">111</i><i class="r">254</i></div><small>Run 5</small></div>
+  </div>
+</main>
+</body>
+</html>

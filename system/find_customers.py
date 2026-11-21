@@ -21,6 +21,8 @@ from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
 
+from countries import COUNTRIES, NOT_COUNTRIES
+
 PLACEHOLDERS = {
     "na", "n/a", "test", "unknown", "xxx", "none", "null", "nil", "tbd", "blank",
 }
@@ -31,66 +33,6 @@ MONTHS = {
     "oct": 10, "november": 11, "nov": 11, "december": 12, "dec": 12,
 }
 
-# Canonical country names. Codes, official names and demonyms collapse together.
-COUNTRIES = {
-    "algeria": "algeria",
-    "argentina": "argentina", "ar": "argentina",
-    "armenia": "armenia",
-    "australia": "australia", "australian": "australia", "au": "australia",
-    "austria": "austria", "austrian": "austria", "at": "austria",
-    "bangladesh": "bangladesh", "bangladeshi": "bangladesh", "bd": "bangladesh",
-    "brazil": "brazil", "brazilian": "brazil", "br": "brazil",
-    "canada": "canada", "canadian": "canada", "ca": "canada",
-    "colombia": "colombia", "co": "colombia",
-    "cote divoire": "cote divoire", "ci": "cote divoire",
-    "czech republic": "czech republic", "czechia": "czech republic", "cz": "czech republic",
-    "denmark": "denmark", "danish": "denmark", "dk": "denmark",
-    "dominican republic": "dominican republic", "do": "dominican republic",
-    "ecuador": "ecuador", "ec": "ecuador",
-    "finland": "finland", "finnish": "finland", "fi": "finland",
-    "france": "france", "french": "france", "fr": "france",
-    "germany": "germany", "german": "germany", "de": "germany",
-    "ghana": "ghana", "ghanaian": "ghana", "gh": "ghana",
-    "haiti": "haiti", "ht": "haiti",
-    "hungary": "hungary", "hungarian": "hungary", "hu": "hungary",
-    "india": "india", "indian": "india", "in": "india",
-    "indonesia": "indonesia", "indonesian": "indonesia", "id": "indonesia",
-    "ireland": "ireland", "irish": "ireland", "ie": "ireland",
-    "israel": "israel", "israeli": "israel", "il": "israel",
-    "italy": "italy", "italian": "italy", "it": "italy",
-    "jamaica": "jamaica", "jamaican": "jamaica", "jm": "jamaica",
-    "kenya": "kenya", "kenyan": "kenya", "ke": "kenya",
-    "lebanon": "lebanon", "lebanese": "lebanon", "lb": "lebanon",
-    "mexico": "mexico", "mexican": "mexico", "mx": "mexico",
-    "moldova": "moldova", "moldovan": "moldova", "md": "moldova",
-    "montenegro": "montenegro", "me": "montenegro",
-    "morocco": "morocco", "moroccan": "morocco", "ma": "morocco",
-    "netherlands": "netherlands", "dutch": "netherlands", "nl": "netherlands",
-    "new zealand": "new zealand", "nz": "new zealand",
-    "nigeria": "nigeria", "nigerian": "nigeria", "ng": "nigeria",
-    "north korea": "north korea", "kp": "north korea",
-    "norway": "norway", "norwegian": "norway", "no": "norway",
-    "pakistan": "pakistan", "pakistani": "pakistan", "pk": "pakistan",
-    "panama": "panama", "panamanian": "panama", "pa": "panama",
-    "peru": "peru", "peruvian": "peru", "pe": "peru",
-    "poland": "poland", "polish": "poland", "pl": "poland",
-    "portugal": "portugal", "portuguese": "portugal", "pt": "portugal",
-    "romania": "romania", "romanian": "romania", "ro": "romania",
-    "russia": "russia", "russian": "russia", "ru": "russia",
-    "serbia": "serbia", "serbian": "serbia", "rs": "serbia",
-    "singapore": "singapore", "singaporean": "singapore", "sg": "singapore",
-    "slovenia": "slovenia", "slovenian": "slovenia", "si": "slovenia",
-    "south africa": "south africa", "south african": "south africa", "za": "south africa",
-    "spain": "spain", "spanish": "spain", "es": "spain",
-    "sweden": "sweden", "swedish": "sweden", "se": "sweden",
-    "switzerland": "switzerland", "swiss": "switzerland", "ch": "switzerland",
-    "syria": "syria", "syrian": "syria", "sy": "syria",
-    "thailand": "thailand", "thai": "thailand", "th": "thailand",
-    "united arab emirates": "united arab emirates", "ae": "united arab emirates",
-    "united kingdom": "united kingdom", "british": "united kingdom", "uk": "united kingdom", "gb": "united kingdom",
-    "united states": "united states", "american": "united states", "us": "united states", "usa": "united states",
-    "vietnam": "vietnam", "vietnamese": "vietnam", "vn": "vietnam",
-}
 
 
 def read_jsonl(path):
@@ -102,8 +44,17 @@ def read_jsonl(path):
     return rows
 
 
+# These letters do not decompose under NFKD, so they are mapped before folding.
+_SPECIAL = str.maketrans({
+    "ł": "l", "Ł": "L", "ø": "o", "Ø": "O", "đ": "d", "Đ": "D", "ß": "ss",
+    "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ı": "i", "þ": "th", "Þ": "Th",
+    "ð": "d", "Ð": "D", "ħ": "h", "Ħ": "H", "ŧ": "t", "Ŧ": "T",
+})
+
+
 def fold(text):
-    text = unicodedata.normalize("NFKD", str(text).casefold())
+    text = str(text).translate(_SPECIAL)
+    text = unicodedata.normalize("NFKD", text.casefold())
     text = "".join(char for char in text if not unicodedata.combining(char))
     text = text.replace("'", "").replace("'", "").replace("-", "")
     text = re.sub(r"[^a-z0-9]+", " ", text)
@@ -111,15 +62,18 @@ def fold(text):
 
 
 def country_key(value):
+    """Canonical country, or None when the text is not a known country."""
     if not value:
         return None
-    folded = fold(value).replace(" ", "")
     spaced = fold(value)
+    if not spaced or spaced in NOT_COUNTRIES:
+        return None
+    compact = spaced.replace(" ", "")
     if spaced in COUNTRIES:
         return COUNTRIES[spaced]
-    if folded in COUNTRIES:
-        return COUNTRIES[folded]
-    return spaced
+    if compact in COUNTRIES:
+        return COUNTRIES[compact]
+    return None
 
 
 def parse_dob(value):
@@ -343,9 +297,20 @@ def country_fits(screened_country, customer):
     wanted = country_key(screened_country)
     if not wanted:
         return True
-    residence = country_key(customer.get("residence_country"))
-    nationality = country_key(customer.get("nationality"))
-    return wanted in (residence, nationality)
+    known = []
+    unresolved = False
+    for field in ("residence_country", "nationality"):
+        raw = customer.get(field)
+        if not raw:
+            continue
+        key = country_key(raw)
+        if key:
+            known.append(key)
+        else:
+            unresolved = True
+    if known:
+        return wanted in known
+    return unresolved
 
 
 def screened_view(alert):

@@ -15,8 +15,10 @@ import argparse
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
+from collections import defaultdict
 from pathlib import Path
 
 from decide_hits import (
@@ -47,7 +49,8 @@ from gather_sources import SourceIndex, gather
 
 DIGIT = re.compile(r"\b\d{1,3}\b")
 XAI_MODEL = "grok-4.20-0309-non-reasoning"
-OPENROUTER_MODEL = "x-ai/grok-4-fast"
+OPENROUTER_MODEL = "x-ai/grok-4.20-0309-non-reasoning"
+MODEL_BUDGET_SECONDS = 20 * 60
 
 
 def load_env():
@@ -282,17 +285,10 @@ def _store_search(book, result, reply):
     return ages
 
 
-def _batches(items, size, limit):
-    if limit:
-        items = items[:limit]
-    for start in range(0, len(items), size):
-        yield items[start:start + size]
-
-
 def _ask(settings, instruction, payload, label):
     try:
         return complete(settings, instruction, payload)
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, KeyError, TimeoutError) as exc:
+    except Exception as exc:
         print(f"{label} failed ({exc.__class__.__name__}); those items will be asked again next run")
         return None
 
@@ -329,50 +325,105 @@ SEARCH_INSTRUCTION = (
 )
 
 
-def fill_gaps(rows, book, facts_path, limit=0):
+def _hit_index(rows):
+    note_hits = defaultdict(set)
+    search_hits = defaultdict(set)
+    for row in rows:
+        hit_id = row["hit_id"]
+        for person in row["people"]:
+            for note in person["notes"]:
+                note_hits[note["note_id"]].add(hit_id)
+        for item in row["search_results"]:
+            search_hits[item["result_id"]].add(hit_id)
+    return note_hits, search_hits
+
+
+def _cover(items, kind, hit_ids):
+    covered = set()
+    for item in items:
+        for hit_id in hit_ids(item):
+            covered.add((hit_id, kind))
+    return covered
+
+
+def _grouped(open_gaps):
+    found = defaultdict(set)
+    for hit_id, kind in open_gaps:
+        found[hit_id].add(kind)
+    return found
+
+
+def _fill_gaps(rows, book, facts_path, limit, open_gaps):
     settings = api_settings()
     lived, identity, hits, search = select_gaps(rows, book)
+    note_hits, search_hits = _hit_index(rows)
+    open_gaps.update(_cover(lived, "lived", lambda note: note_hits[note["note_id"]]))
+    open_gaps.update(_cover(identity, "identity", lambda note: note_hits[note["note_id"]]))
+    open_gaps.update(_cover(
+        [item for item in hits if item["ask_age"]],
+        "age",
+        lambda item: {item["hit"]["hit_id"]},
+    ))
+    open_gaps.update(_cover(search, "age", lambda item: search_hits[item["result_id"]]))
     pending = len(lived) + len(identity) + len(hits) + len(search)
     if not pending:
         print("model facts: nothing left to ask")
-        return book
+        return
     if not settings:
         print(f"model facts: {pending} gaps, no API key, left for review")
-        return book
+        return
     print(f"model facts: asking {pending} gaps with {settings['model']}")
+    deadline = time.monotonic() + MODEL_BUDGET_SECONDS
     asked = False
 
     def save():
         book.checkpoint(facts_path)
 
-    for batch in _batches(lived, 8, limit):
-        print(f"  lived {len(batch)}", flush=True)
+    def run_batches(items, size, kind, hit_ids, label, ask):
+        nonlocal asked
+        start = 0
+        step = size
+        if limit:
+            items = items[:limit]
+        while start < len(items):
+            batch = items[start:start + step]
+            if time.monotonic() >= deadline:
+                print("model facts: stopped after 20 minutes; remaining clears stay in review")
+                return
+            start += step
+            print(f"  {label} {len(batch)}", flush=True)
+            reply = ask(batch)
+            if reply is None:
+                continue
+            open_gaps.difference_update(_cover(batch, kind, hit_ids))
+            asked = True
+            save()
+
+    def ask_lived(batch):
         payload = [{"id": note["note_id"], "text": _clip(note.get("text"), 4000)} for note in batch]
         reply = _ask(settings, LIVED_INSTRUCTION, payload, "lived notes")
         if reply is None:
-            continue
+            return None
         found = _by_id(reply.get("notes"))
         for note in batch:
             stored = _store_lived(book, note, found.get(note["note_id"]))
             if stored:
                 print(f"  {note['note_id']} lived {', '.join(item['country'] for item in stored)}")
-        asked = True
-        save()
-    for batch in _batches(identity, 6, limit):
-        print(f"  identity {len(batch)}", flush=True)
+        return reply
+
+    def ask_identity(batch):
         payload = [{"id": note["note_id"], "text": _clip(note.get("text"), 4000)} for note in batch]
         reply = _ask(settings, IDENTITY_INSTRUCTION, payload, "identity notes")
         if reply is None:
-            continue
+            return None
         found = _by_id(reply.get("notes"))
         for note in batch:
             name, dob, country = _store_identity(book, note, found.get(note["note_id"]))
             if name or dob or country:
                 print(f"  {note['note_id']} name={name or '-'} dob={dob or '-'} country={country or '-'}")
-        asked = True
-        save()
-    for batch in _batches(hits, 4, limit):
-        print(f"  profiles {len(batch)}", flush=True)
+        return reply
+
+    def ask_hits(batch):
         payload = []
         for item in batch:
             hit = item["hit"]
@@ -382,31 +433,61 @@ def fill_gaps(rows, book, facts_path, limit=0):
             payload.append({"id": hit["hit_id"], "ask_death": item["ask_death"], "ask_age": item["ask_age"], "text": text})
         reply = _ask(settings, HIT_INSTRUCTION, payload, "profiles")
         if reply is None:
-            continue
+            return None
         found = _by_id(reply.get("hits"))
         for item in batch:
             death, ages = _store_hit(book, item, found.get(item["hit"]["hit_id"]))
             if death or ages:
                 print(f"  {item['hit']['hit_id']} death={death or '-'} ages={len(ages)}")
-        asked = True
-        save()
-    for batch in _batches(search, 6, limit):
-        print(f"  search {len(batch)}", flush=True)
+        return reply
+
+    def ask_search(batch):
         payload = [{"id": item["result_id"], "text": _clip(item.get("snippet"), 1500)} for item in batch]
         reply = _ask(settings, SEARCH_INSTRUCTION, payload, "search snippets")
         if reply is None:
-            continue
+            return None
         found = _by_id(reply.get("results"))
         for item in batch:
             ages = _store_search(book, item, found.get(item["result_id"]))
             if ages:
                 print(f"  {item['result_id']} ages={len(ages)}")
-        asked = True
-        save()
+        return reply
+
+    note_of = lambda note: note_hits[note["note_id"]]
+    run_batches(lived, 8, "lived", note_of, "lived", ask_lived)
+    if time.monotonic() < deadline:
+        run_batches(identity, 6, "identity", note_of, "identity", ask_identity)
+    if time.monotonic() < deadline:
+        run_batches(
+            [item for item in hits if item["ask_age"]],
+            4,
+            "age",
+            lambda item: {item["hit"]["hit_id"]},
+            "profiles",
+            ask_hits,
+        )
+    if time.monotonic() < deadline:
+        run_batches(search, 6, "age", lambda item: search_hits[item["result_id"]], "search", ask_search)
+    # Death questions do not hold up a clear. Ask them, but do not track them as open gaps.
+    if time.monotonic() < deadline:
+        death_only = [item for item in hits if item["ask_death"] and not item["ask_age"]]
+        run_batches(death_only, 4, "death", lambda item: set(), "profiles", ask_hits)
     if asked:
         book.merge_into(facts_path)
         print(f"model facts merged into {facts_path}")
-    return book
+
+
+def fill_gaps(rows, book, facts_path, limit=0):
+    """Ask the model. Return {hit_id: {kind}} for gaps that were not answered.
+
+    A clear that depended on one of those gaps is left for review by the caller.
+    """
+    open_gaps = set()
+    try:
+        _fill_gaps(rows, book, facts_path, limit, open_gaps)
+    except Exception as exc:
+        print(f"model facts failed ({exc.__class__.__name__}); clears that needed a model fact stay in review")
+    return _grouped(open_gaps)
 
 
 def main():
