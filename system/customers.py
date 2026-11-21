@@ -67,6 +67,27 @@ def title_case_name(text):
     return None
 
 
+BIRTH = re.compile(r"\b(?:date of birth|birth ?date|born|d\.?o\.?b\.?)(?![a-z])", re.I)
+
+
+def birth_date_in(text, created=None):
+    """The date attached to a birth word: right after it (within 30 characters) or right
+    before it ("lists 06/01/1998 as her DOB", within 20); the nearest wins. None if no birth
+    word has a date next to it, so a note that also gives issue and expiry dates is still read.
+    """
+    dates = [(s, e, v) for s, e, v in find_dates(text, years=True) if v != created]
+    best = None
+    for m in BIRTH.finditer(text):
+        for s, e, value in dates:
+            gap = s - m.end() if s >= m.end() else (m.start() - e if e <= m.start() else None)
+            if gap is None or gap > (30 if s >= m.end() else 20):
+                continue
+            key = (gap, s < m.end(), s)
+            if best is None or key < best[0]:
+                best = (key, value)
+    return best[1] if best else None
+
+
 def parse_kyc_note(note):
     """Facts from an onboarding note that records an identity check.
 
@@ -101,17 +122,17 @@ def parse_kyc_note(note):
         if title:
             name, span = title
             rest = text[:span[0]] + " " + text[span[1]:]
-    dob = None
+    dob = birth_date_in(rest, created)
     candidates = []
-    for s, e, value in find_dates(rest):
+    for s, e, value in ([] if dob else find_dates(rest)):
         if created and value == created:
             continue
         candidates.append(value)
     candidates = sorted(set(candidates))
-    if not candidates:  # a birth year alone ("DOB 1966")
+    if not candidates and not dob:  # a birth year alone ("DOB 1966")
         candidates = sorted({v for s, e, v in find_dates(rest, years=True)
                              if v[1] is None and not (created and v[0] == created[0] and False)})
-    if len(candidates) == 1:
+    if not dob and len(candidates) == 1:
         dob = candidates[0]
     found = countries.find_in_text(rest)
     country = found[0] if len(found) == 1 else None
