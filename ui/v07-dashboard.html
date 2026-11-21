@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overview</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 60px; display: grid; gap: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .kpi { padding: 14px 16px; } .kpi .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; } .kpi .k { color: var(--muted); font-size: 12px; } .kpi .s { font-size: 12px; color: var(--faint); }
+  .row2 { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+  .panel { padding: 18px; } .panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 14px; }
+  .donut { display: flex; gap: 20px; align-items: center; }
+  .leg div { display: flex; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+  .leg i { width: 10px; height: 10px; border-radius: 3px; }
+  .bars .b { display: grid; grid-template-columns: 230px 1fr 44px; gap: 10px; align-items: center; margin: 7px 0; font-size: 13px; cursor: pointer; }
+  .bars .b:hover .track span { filter: brightness(1.1); }
+  .track { height: 12px; background: var(--panel-2); border-radius: 6px; overflow: hidden; }
+  .track span { display: block; height: 100%; border-radius: 6px; }
+  .bars .b.on { font-weight: 700; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--panel); }
+  tr.al { cursor: pointer; } tr.al:hover { background: var(--panel-2); }
+  .sq { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 3px; vertical-align: -2px; }
+  .sq.DIFFERENT_ENTITY { background: var(--diff); } .sq.SAME_ENTITY { background: var(--same); } .sq.REVIEW { background: var(--rev); }
+  .sq.cur { outline: 2px solid var(--text); outline-offset: 1px; }
+  .closed { color: var(--diff); font-weight: 600; } .open { color: var(--rev); font-weight: 600; }
+  tr.det td { background: var(--panel-2); padding: 0; }
+  .hitrow { display: grid; grid-template-columns: 110px 170px 1fr 130px; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); align-items: start; }
+  .tablewrap { overflow-x: auto; }
+  @media (max-width: 1000px) { .kpis { grid-template-columns: repeat(3, 1fr); } .row2 { grid-template-columns: 1fr; } .bars .b { grid-template-columns: 150px 1fr 40px; } .hitrow { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="kpis" id="kpis"></section>
+  <section class="row2">
+    <div class="card panel"><h3>Decisions</h3><div class="donut" id="donut"></div></div>
+    <div class="card panel"><h3>Main reason (click to filter)</h3><div class="bars" id="bars"></div></div>
+  </section>
+  <section class="card panel">
+    <div class="tools">
+      <h3 style="margin:0 auto 0 0">Alerts · an alert closes only when every hit in it is cleared</h3>
+      <select class="select" id="fstate"><option value="">All alerts</option><option value="open">Open</option><option value="closed">Closed</option></select>
+      <input class="input" id="fq" placeholder="Filter alerts…">
+    </div>
+    <div class="tablewrap"><table id="tbl"></table></div>
+  </section>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { D, HITS, ALERTS, DEC, DEC_SHORT, CODE, esc, pill, chip, go, onHit } = UX;
+UX.nav("v07-dashboard.html");
+const s = D.stats, n = HITS.length, A = Object.entries(ALERTS);
+let codeF = "", open = new Set();
+const pct = x => Math.round(100 * x / n) + "%";
+const unsafeRisk = HITS.filter(h => h.decision === "DIFFERENT_ENTITY" && h.label && h.label.decision !== "DIFFERENT_ENTITY").length;
+document.getElementById("kpis").innerHTML = [
+  ["Hits", n, `${s.alerts} alerts`], ["Cleared", s.decisions.DIFFERENT_ENTITY, pct(s.decisions.DIFFERENT_ENTITY) + " of hits"],
+  ["Matches", s.decisions.SAME_ENTITY, pct(s.decisions.SAME_ENTITY)], ["Review rate", pct(s.decisions.REVIEW), `${s.decisions.REVIEW} hits for analysts`],
+  ["Alerts closed", s.alerts_closed, Math.round(100 * s.alerts_closed / s.alerts) + "% need no analyst"], ["Practice labels", `${s.labels_right}/${s.labels}`, `${unsafeRisk} unsafe clearances`],
+].map(([k, v, t]) => `<div class="card kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${t}</div></div>`).join("");
+// donut
+const parts = [["DIFFERENT_ENTITY", "var(--diff)"], ["SAME_ENTITY", "var(--same)"], ["REVIEW", "var(--rev)"]];
+let acc = 0; const R = 54, C = 2 * Math.PI * R;
+document.getElementById("donut").innerHTML = `<svg width="150" height="150" viewBox="0 0 150 150"><g transform="rotate(-90 75 75)">${parts.map(([d, c]) => { const f = s.decisions[d] / n, seg = `<circle cx="75" cy="75" r="${R}" fill="none" stroke="${c}" stroke-width="22" stroke-dasharray="${f * C - 2} ${C}" stroke-dashoffset="${-acc * C}"/>`; acc += f; return seg; }).join("")}</g>
+  <text x="75" y="72" text-anchor="middle" style="font:700 22px var(--sans);fill:var(--text)">${n}</text><text x="75" y="92" text-anchor="middle" style="font:12px var(--sans);fill:var(--muted)">hits</text></svg>
+  <div class="leg">${parts.map(([d, c]) => `<div><i style="background:${c}"></i>${DEC[d]} <b>${s.decisions[d]}</b> <span class="faint">${pct(s.decisions[d])}</span></div>`).join("")}</div>`;
+const codeCol = c => ["TEMPORAL_IMPOSSIBILITY", "DOB_MISMATCH", "LOCATION_MISMATCH", "NAME_MISMATCH_VERIFIED", "ENTITY_TYPE_MISMATCH", "DECEASED"].includes(c) ? "var(--diff)" : c.startsWith("NAME_") ? "var(--same)" : "var(--rev)";
+function bars() {
+  const codes = Object.entries(s.codes).sort((a, b) => b[1] - a[1]), max = codes[0][1];
+  document.getElementById("bars").innerHTML = codes.map(([c, k]) => `<div class="b ${codeF === c ? "on" : ""}" data-c="${c}"><span title="${c}">${esc(CODE[c])}</span><div class="track"><span style="width:${100 * k / max}%;background:${codeCol(c)}"></span></div><span class="mono">${k}</span></div>`).join("");
+}
+document.getElementById("bars").onclick = e => { const b = e.target.closest(".b"); if (b) { codeF = codeF === b.dataset.c ? "" : b.dataset.c; bars(); table(); } };
+document.getElementById("fstate").onchange = table; document.getElementById("fq").oninput = table;
+function table() {
+  const st = document.getElementById("fstate").value, q = document.getElementById("fq").value.toLowerCase(), cur = UX.current();
+  const rows = A.filter(([id, hs]) => { const closed = hs.every(h => h.decision === "DIFFERENT_ENTITY");
+    return (!st || (st === "closed") === closed) && (!codeF || hs.some(h => h.code === codeF)) && (!q || `${id} ${hs[0].alert.customer.name} ${hs.map(h => h.hit.name).join(" ")}`.toLowerCase().includes(q)); });
+  document.getElementById("tbl").innerHTML = `<tr><th>Alert</th><th>Customer as screened</th><th>Hits</th><th>Status</th><th>Resolved to</th></tr>` + rows.slice(0, 300).map(([id, hs]) => {
+    const closed = hs.every(h => h.decision === "DIFFERENT_ENTITY"), isOpen = open.has(id) || hs.some(h => h.hit_id === cur.hit_id);
+    return `<tr class="al" data-a="${id}"><td class="mono">${id}</td><td><b>${esc(hs[0].alert.customer.name)}</b><div class="faint" style="font-size:12px">${esc(hs[0].alert.customer.dob || "")} ${esc(hs[0].alert.customer.country || "")}</div></td>
+      <td>${hs.map(h => `<span class="sq ${h.decision} ${h.hit_id === cur.hit_id ? "cur" : ""}" title="${h.hit_id} ${h.code}"></span>`).join("")} <span class="faint">${hs.length}</span></td>
+      <td class="${closed ? "closed" : "open"}">${closed ? "Closed" : "Open"}</td><td>${hs[0].record ? chip(hs[0].record) : '<span class="faint">none</span>'}</td></tr>` +
+      (isOpen ? `<tr class="det"><td colspan="5">${hs.map(h => `<div class="hitrow"><a class="mono" href="v01-case-file.html#${h.hit_id}">${h.hit_id}</a><span>${pill(h.decision)}</span><span><b>${esc(h.hit.name)}</b> · ${esc(h.reason)}</span><span class="mono faint" style="font-size:12px">${h.code}</span></div>`).join("")}</td></tr>` : "");
+  }).join("") + (rows.length > 300 ? `<tr><td colspan="5" class="faint">${rows.length - 300} more… refine the filter</td></tr>` : "");
+}
+document.getElementById("tbl").onclick = e => { if (e.target.closest("[data-rec],a")) return; const r = e.target.closest("tr.al"); if (r) { const id = r.dataset.a; open.has(id) ? open.delete(id) : open.add(id); table(); } };
+bars();
+onHit(() => table());
+</script>
+</body>
+</html>

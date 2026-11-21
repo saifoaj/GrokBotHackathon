@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Review Queue</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 60px; display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  .q { position: sticky; top: 72px; max-height: calc(100vh - 90px); display: flex; flex-direction: column; overflow: hidden; }
+  .q .hd { padding: 14px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+  .prog { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; } .prog span { display: block; height: 100%; background: var(--accent); }
+  .q .list { overflow: auto; }
+  .qi { padding: 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; }
+  .qi:hover { background: var(--panel-2); } .qi.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .qi .why { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+  .tag { font: 600 10.5px var(--sans); padding: 1px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; }
+  .tag.same { background: var(--same-soft); color: var(--same); } .tag.diff { background: var(--diff-soft); color: var(--diff); } .tag.esc { background: var(--accent-soft); color: var(--accent); }
+  .focus { display: grid; gap: 16px; }
+  .hero { padding: 22px; display: grid; gap: 10px; }
+  .hero h1 { font-size: 24px; } .hero .why { font-size: 16px; line-height: 1.6; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .box { padding: 18px; } .box h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 12px; }
+  .li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; margin: 10px 0; }
+  .li .ic { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .ic.y { background: var(--same-soft); color: var(--same); } .ic.n { background: var(--na-soft); color: var(--faint); border: 1px dashed var(--line-2); } .ic.w { background: var(--rev-soft); color: var(--rev); }
+  .act { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 18px; align-items: center; }
+  .act .btn { padding: 9px 14px; font-weight: 600; }
+  .act .btn.same { border-color: var(--same); color: var(--same); } .act .btn.diff { border-color: var(--diff); color: var(--diff); } .act .btn.esc { border-color: var(--accent); color: var(--accent); }
+  .act .btn.on { color: #fff; } .act .btn.same.on { background: var(--same); } .act .btn.diff.on { background: var(--diff); } .act .btn.esc.on { background: var(--accent); }
+  textarea { width: 100%; min-height: 64px; border: 1px solid var(--line-2); border-radius: 10px; padding: 10px; background: var(--panel); color: var(--text); font: inherit; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .q { position: static; max-height: 40vh; } .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <aside class="card q">
+    <div class="hd">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>Review queue</b><select class="select" id="scope"><option value="REVIEW">Review only</option><option value="ALL">All hits</option></select></div>
+      <div class="prog"><span id="prog"></span></div>
+      <span class="faint" style="font-size:12px" id="progt"></span>
+      <span class="faint" style="font-size:12px"><span class="kbd">j</span>/<span class="kbd">k</span> move · <span class="kbd">1</span> same · <span class="kbd">2</span> different · <span class="kbd">3</span> escalate</span>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+  <section class="focus" id="focus"></section>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { HITS, DEC, RULE, esc, pill, chip, years, go, onHit } = UX;
+UX.nav("v08-review-queue.html");
+let scope = "REVIEW", calls = {};
+try { calls = JSON.parse(localStorage.getItem("ux-calls") || "{}"); } catch (e) {}
+const save = () => { try { localStorage.setItem("ux-calls", JSON.stringify(calls)); } catch (e) {} };
+const queue = () => HITS.filter(h => scope === "ALL" || h.decision === "REVIEW");
+const TAG = { same: "Same", diff: "Different", esc: "Escalated" };
+const SETTLE = {
+  DOB_MISMATCH: "Find the listed person's date of birth (official list entry, court record, or a news item with the same role and country).",
+  TEMPORAL_IMPOSSIBILITY: "Find the date of the earliest report about the listed person, to check whether the customer could have been involved.",
+  NAME_MISMATCH_VERIFIED: "Request or locate an approved ID check showing the customer's full legal name.",
+  LOCATION_MISMATCH: "Confirm the countries tied to both sides (residence, nationality, ID document, places lived).",
+};
+function whyShort(h) {
+  if (h.code === "AMBIGUOUS_CUSTOMER_RECORD") return `${h.persons.length} customers fit; their outcomes differ`;
+  const p = UX.person(h); if (!p) return "No customer record found";
+  const b = p.trace.find(t => t.status === "blocked"); if (b) return "Name and DOB agree, countries differ";
+  const na = p.trace.filter(t => t.status === "n/a" && t.rule !== "DECEASED").map(t => RULE[t.rule].toLowerCase());
+  return na.length ? "Missing: " + na.slice(0, 3).join(", ") : "Not enough agreement to confirm";
+}
+function list() {
+  const q = queue(), cur = UX.current().hit_id, done = q.filter(h => calls[h.hit_id]).length;
+  document.getElementById("prog").style.width = (100 * done / Math.max(1, q.length)) + "%";
+  document.getElementById("progt").textContent = `${done} of ${q.length} reviewed (saved in this browser)`;
+  document.getElementById("list").innerHTML = q.map(h => `<div class="qi ${h.hit_id === cur ? "sel" : ""}" data-h="${h.hit_id}"><b>${esc(h.alert.customer.name)}</b>${calls[h.hit_id] ? `<span class="tag ${calls[h.hit_id].v}">${TAG[calls[h.hit_id].v]}</span>` : scope === "ALL" ? pill(h.decision) : ""}<span class="why">${esc(whyShort(h))}</span></div>`).join("");
+  document.querySelector(".qi.sel")?.scrollIntoView({ block: "nearest" });
+}
+document.getElementById("list").onclick = e => { const i = e.target.closest(".qi"); if (i) go(i.dataset.h); };
+document.getElementById("scope").onchange = e => { scope = e.target.value; list(); };
+
+function render(h) {
+  list();
+  const p = UX.person(h), T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t])), ag = T.AGREEMENT?.detail || "";
+  const agrees = [], missing = [], warns = [];
+  if (p) {
+    if (ag.startsWith("name agrees")) agrees.push(`Name: <b>${esc(p.verified_name?.v || p.names[0]?.v)}</b> ≈ <b>${esc(h.hit.name)}</b>${p.verified_name ? " (verified " + chip(p.verified_name.src) + ")" : " (record name, not verified)"}`);
+    if (ag.includes("date of birth agrees")) agrees.push(`Date of birth: <b>${esc(p.dobs[0].v)}</b> fits the hit's <b>${h.hit.dobs.map(years).join(", ")}</b>`);
+    const shared = ag.match(/shared country: (.*)$/)?.[1]; if (shared && shared !== "none") agrees.push(`Country: both linked to <b>${esc(shared)}</b>`);
+    p.trace.filter(t => t.status === "n/a" && t.rule !== "DECEASED").forEach(t => missing.push(`<b>${RULE[t.rule]}</b>: ${esc(t.detail)}${SETTLE[t.rule] ? `<div class="faint" style="font-size:12px;margin-top:2px">→ ${esc(SETTLE[t.rule])}</div>` : ""}`));
+    p.trace.filter(t => t.status === "blocked").forEach(t => warns.push(`<b>${RULE[t.rule]}</b>: ${esc(t.detail)}`));
+    if (p.dobs.length > 1) warns.push(`The customer's records give conflicting dates of birth: ${p.dobs.map(d => esc(d.v) + " " + d.src.map(s => chip(s)).join("")).join(" vs ")}`);
+  }
+  if (h.persons.length > 1) warns.push(`${h.persons.length} different customers fit the alert: ${h.persons.map(x => `${chip(x.record)} → ${esc(DEC[x.decision])}`).join(", ")}. Work out which customer was screened first.`);
+  const c = calls[h.hit_id] || {};
+  document.getElementById("focus").innerHTML = `
+    <div class="card hero">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${pill(h.decision)}<span class="mono faint">${h.hit_id} · ${h.code}</span></div>
+      <h1>${esc(h.alert.customer.name)} <span class="faint" style="font-weight:400">vs</span> ${esc(h.hit.name)}</h1>
+      <div class="why">${esc(h.reason)}</div>
+      <div>${h.evidence.map(e => chip(e, true)).join(" ")}</div>
+    </div>
+    <div class="cols">
+      <div class="card box"><h3>What agrees</h3>${agrees.map(a => `<div class="li"><span class="ic y">=</span><div>${a}</div></div>`).join("") || '<span class="faint">Nothing positively agrees.</span>'}
+        ${warns.length ? `<h3 style="margin-top:18px">Why the engine stopped</h3>${warns.map(w => `<div class="li"><span class="ic w">!</span><div>${w}</div></div>`).join("")}` : ""}</div>
+      <div class="card box"><h3>What would settle it</h3>${missing.map(m => `<div class="li"><span class="ic n">?</span><div>${m}</div></div>`).join("") || '<span class="faint">All checks could run.</span>'}</div>
+    </div>
+    <div class="card">
+      <div class="act">
+        <b style="margin-right:6px">Analyst call</b>
+        <button class="btn same ${c.v === "same" ? "on" : ""}" data-v="same">1 · Same person</button>
+        <button class="btn diff ${c.v === "diff" ? "on" : ""}" data-v="diff">2 · Different person</button>
+        <button class="btn esc ${c.v === "esc" ? "on" : ""}" data-v="esc">3 · Escalate</button>
+        <span class="grow"></span><a class="btn" data-vlink="v01-case-file.html" href="v01-case-file.html#${h.hit_id}">Open full case →</a>
+      </div>
+      <div style="padding:0 18px 18px"><textarea id="memo" placeholder="Note for the file (saved locally)…">${esc(c.note || "")}</textarea></div>
+    </div>`;
+  document.querySelectorAll(".act .btn[data-v]").forEach(b => b.onclick = () => decideCall(b.dataset.v));
+  document.getElementById("memo").oninput = e => { calls[h.hit_id] = { ...(calls[h.hit_id] || {}), note: e.target.value }; save(); };
+}
+function decideCall(v) { const h = UX.current(); calls[h.hit_id] = { ...(calls[h.hit_id] || {}), v }; save(); move(1); }
+function move(d) { const q = queue(), i = q.findIndex(h => h.hit_id === UX.current().hit_id); const n = q[Math.min(q.length - 1, Math.max(0, i + d))] || q[0]; if (n) { if (n.hit_id === UX.current().hit_id) render(n); else go(n.hit_id); } }
+document.addEventListener("keydown", e => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+  if (e.key === "j") move(1); if (e.key === "k") move(-1);
+  if (e.key === "1") decideCall("same"); if (e.key === "2") decideCall("diff"); if (e.key === "3") decideCall("esc");
+});
+if (UX.current().decision !== "REVIEW" && !location.hash) go(queue()[0].hit_id);
+onHit(render);
+</script>
+</body>
+</html>

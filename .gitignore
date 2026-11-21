@@ -11,3 +11,4 @@ stress/data/
 stress/data_hard/
 stress/*.jsonl
 stress/*.zip
+ui/data.js
