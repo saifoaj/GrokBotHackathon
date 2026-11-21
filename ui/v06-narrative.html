@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Narrative</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+  article { max-width: 720px; margin: 0 auto; padding: 48px 16px 80px; font: 18px/1.7 "Source Serif 4", Georgia, serif; }
+  .kicker { font: 600 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+  article h1 { font: 700 40px/1.15 "Source Serif 4", Georgia, serif; letter-spacing: -.02em; margin: 12px 0 8px; }
+  .dek { font-size: 21px; color: var(--muted); margin: 0 0 32px; }
+  .verdict { font: 600 15px var(--sans); padding: 16px 18px; border-radius: 12px; background: var(--c-soft); color: var(--c); margin: 0 0 36px; display: flex; gap: 12px; align-items: baseline; }
+  .verdict b { font-size: 20px; }
+  h2 { font: 600 13px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 40px 0 6px; }
+  p { margin: 0 0 16px; }
+  sup a { font: 600 11px var(--sans); color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 0 4px; margin-left: 2px; cursor: pointer; }
+  .fn { font: 14px/1.55 var(--sans); border-top: 1px solid var(--line); margin-top: 48px; padding-top: 20px; }
+  .fn ol { padding-left: 22px; } .fn li { margin-bottom: 14px; } .fn li:target { background: var(--accent-soft); border-radius: 8px; }
+  .fn .quote { font-size: 13.5px; margin-top: 6px; }
+  .cf { font: 15px/1.6 var(--sans); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .cf li { margin-bottom: 8px; }
+  .em { background: linear-gradient(transparent 62%, color-mix(in srgb, var(--c) 28%, transparent) 62%); }
+</style>
+</head>
+<body>
+<article id="art"></article>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { esc, rec, years, DEC, CODE, highlight, onHit } = UX;
+UX.nav("v06-narrative.html");
+const COL = { DIFFERENT_ENTITY: ["var(--diff)", "var(--diff-soft)"], SAME_ENTITY: ["var(--same)", "var(--same-soft)"], REVIEW: ["var(--rev)", "var(--rev-soft)"] };
+const WOULD = {
+  DOB_MISMATCH: { "n/a": "If the listed person's date of birth were known (a dobs field, an age in the profile, or a search result with the same role and country), it could be compared with the customer's: more than a year apart would clear the hit, the same year would help confirm it." },
+  TEMPORAL_IMPOSSIBILITY: { "n/a": "A dated report in the hit's profile (“According to …; Month D, YYYY:”) would let us check whether the customer was even 16 at the time." },
+  NAME_MISMATCH_VERIFIED: { "n/a": "An approved identity check with the customer's full legal name (two real name parts) would let the name clear or confirm the hit." },
+  LOCATION_MISMATCH: { "n/a": "A country on both sides would let location be compared: no country in common clears the hit unless name and date of birth agree.",
+    blocked: "The countries differ, but name and date of birth agree, so the policy forbids clearing on country alone. Proof that this is a namesake (a different date of birth, or a verified name that does not match) would clear it; a shared country would confirm it." },
+};
+
+const catName = c => /^[A-Z]{2,}$/.test(c) ? c : c.toLowerCase();
+const an = w => (/^[aeiou]/i.test(w) ? "an " : "a ") + esc(w);
+function render(h) {
+  const p = UX.person(h), c = h.alert.customer, [col, soft] = COL[h.decision];
+  const fns = [], cite = id => { let i = fns.indexOf(id); if (i < 0) { fns.push(id); i = fns.length - 1; } return `<sup><a href="#fn${i + 1}" data-rec="${esc(id)}">${i + 1}</a></sup>`; };
+  const P = [];
+  // 1. who screened
+  P.push(["The alert", `On ${esc(h.alert.screened_at)} the bank's screening flagged its customer <b>${esc(c.name)}</b>${c.dob ? `, born ${esc(c.dob)}` : ""}${c.country ? `, in ${esc(c.country)}` : ""}, as a possible match for <b>${esc(h.hit.name)}</b>, who appears on the ${esc(catName(h.hit.primary || h.hit.categories[0] || "watchlist"))} list${h.hit.position ? ` as “${esc(h.hit.position.slice(0, 120))}”` : ""}. The match score was ${h.hit.match_score ?? "not given"}: names alone are never enough, so we looked at everything else.`]);
+  // 2. customer
+  if (!p) P.push(["Who the customer is", "We could not find any customer record that fits the screened details, so there is nothing to compare. A person has to look at it."]);
+  else {
+    let s = h.alert.link ? `The alert carried ${an(h.alert.link.kind.replace("_", " "))} (<span class="mono">${esc(h.alert.link.value)}</span>), which led to ${h.alert.linked.length > 1 ? `${h.alert.linked.length} account holders; the screened name and date of birth fit` : ""} customer record ${cite(h.record)}. `
+      : `The alert carried no account link, so we searched the bank's 72,000 customer records for anyone whose name, date of birth, country and city fit. `;
+    if (h.persons.length > 1) s += `<b>${h.persons.length} different people fit.</b> We decided the hit for each of them separately. `;
+    if (p.records.length > 1) s += `This customer has ${p.records.length} records${p.records.filter(r => r !== h.record).map(cite).join("")}, which we treat as one person because they share ${esc(p.merges.map(m => m.why.replace(/^same /, "")).join(" and "))}. `;
+    s += p.verified_name ? `An approved identity check${cite(p.verified_name.src)} gives their legal name as <b>${esc(p.verified_name.v)}</b>` : `There is no approved identity check with a usable legal name, so we rely on the record name <b>${esc(p.names[0]?.v || c.name)}</b>`;
+    s += p.dobs.length === 1 ? ` and their date of birth as <b>${esc(p.dobs[0].v)}</b>${p.dobs[0].src.filter(x => x !== p.verified_name?.src).map(cite).join("")}${p.dob_verified ? "" : " (declared, not verified)"}.` : p.dobs.length ? `; their records disagree on the date of birth (${p.dobs.map(d => esc(d.v)).join(" vs ")}), so we cannot lean on it.` : `; no date of birth is on file.`;
+    const cn = [...new Set(p.countries.map(x => x.name))];
+    s += ` They are tied to <b>${esc(cn.join(", ") || "no country")}</b>${[...new Set(p.countries.map(x => x.src))].filter(x => x.startsWith("NOTE") && x !== p.verified_name?.src).map(cite).join("")}.`;
+    P.push(["Who the customer is", s]);
+  }
+  // 3. hit
+  let hs = `<b>${esc(h.hit.name)}</b>${h.hit.aliases.length ? ` (also known as ${esc(h.hit.aliases.slice(0, 3).join(", "))})` : ""} is ${h.hit.kind === "Company" ? "a company" : "an individual"}`;
+  const hc = [...new Set(h.hit.countries.map(x => x.name))];
+  hs += hc.length ? ` linked to <b>${esc(hc.join(", "))}</b>.` : " with no country on the profile.";
+  if (h.hit.dobs.length) hs += ` The profile puts the birth ${h.hit.dobs.some(x => x.years.length === 2) ? "year" : "date"} at <b>${h.hit.dobs.map(x => esc(years(x))).join(", ")}</b>${h.hit.dobs.filter(x => x.src.startsWith("SR-")).map(x => cite(x.src)).join("")}${h.hit.dobs.some(x => x.kind === "search results") ? `, taken from a web search result that describes ${esc(h.hit.listing_phrase)} in one of the hit's countries; ${h.hit.searched.filter(s => !s.used).length} other results for the same name were about namesakes and were ignored` : h.hit.dobs.some(x => x.kind === "profile notes") ? ", worked out from an age at a date in its profile notes" : ""}.`;
+  else hs += ` Nothing gives the listed person's date of birth${h.hit.searched.length ? `: all ${h.hit.searched.length} search results for the name describe other people` : ""}.`;
+  if (h.hit.reports.length) hs += ` Its earliest dated report is from <b>${esc(h.hit.reports[0])}</b>.`;
+  if (h.hit.death) hs += ` It records a date of death: <b>${esc(h.hit.death)}</b>.`;
+  P.push(["Who the listed person is", hs]);
+  // 4. comparison
+  if (p) {
+    const fired = p.trace.filter(t => t.status === "fired"), blocked = p.trace.filter(t => t.status === "blocked");
+    let s = fired.length ? `<span class="em">${fired.map(t => esc(t.detail[0].toUpperCase() + t.detail.slice(1))).join(". ")}.</span> A single contradiction like this is enough to say these are different people.`
+      : blocked.length ? `<span class="em">${esc(blocked[0].detail[0].toUpperCase() + blocked[0].detail.slice(1))}.</span>`
+      : h.decision === "SAME_ENTITY" ? `<span class="em">${esc(p.trace.find(t => t.rule === "AGREEMENT").detail.replace(/^./, m => m.toUpperCase()))}.</span> Nothing contradicts the match.`
+      : `Nothing contradicts the match, but there is not enough agreement to confirm it either: ${esc(p.trace.find(t => t.rule === "AGREEMENT").detail)}.`;
+    P.push(["Putting them side by side", s]);
+  }
+  P.push(["The decision", `<b>${DEC[h.decision]}</b> (${esc(h.code)}: ${esc(CODE[h.code].toLowerCase())}). ${h.decision === "DIFFERENT_ENTITY" ? "The hit is cleared." : h.decision === "SAME_ENTITY" ? "The alert goes to the compliance team." : "An analyst will look at it."} ${h.evidence.map(cite).join("")}`]);
+  const would = (p?.trace || []).map(t => WOULD[t.rule]?.[t.status]).filter(Boolean);
+  document.getElementById("art").innerHTML = `
+    <div class="kicker">${esc(h.hit_id)} · ${esc(h.alert_id)}</div>
+    <h1>Is ${esc(c.name)} the ${esc(h.hit.name)} on the watchlist?</h1>
+    <p class="dek">${esc(h.reason)}</p>
+    <div class="verdict" style="--c:${col};--c-soft:${soft};background:${soft};color:${col}"><b>${DEC[h.decision]}</b><span>${esc(CODE[h.code])}</span></div>
+    ${P.map(([t, b]) => `<h2>${t}</h2><p style="--c:${col}">${b}</p>`).join("")}
+    ${would.length ? `<h2>What would change this decision</h2><div class="cf"><ul>${would.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
+    <section class="fn"><b>Sources</b><ol>${fns.map((id, i) => { const r = rec(id); const txt = r?.text || r?.snippet; return `<li id="fn${i + 1}"><span class="chip" data-rec="${esc(id)}">${esc(id)}</span> <span class="muted">${UX.kindOf(id)}${r?.kind === "customer" ? ` · ${esc(r.full_name)}, born ${esc(r.dob)}, ${esc(r.nationality)}, ${esc(r.city)}` : r?.kind === "kyc" ? ` · ${esc(r.provider)} ${esc(r.result)} ${esc(r.checked_at)}: ${esc(r.verified_name)}, ${esc(r.verified_dob)}, ${esc(r.document_type)} from ${esc(r.document_country)}` : ""}</span>${txt ? `<div class="quote">${highlight(txt)}</div>` : ""}</li>`; }).join("")}</ol></section>`;
+}
+onHit(render);
+</script>
+</body>
+</html>

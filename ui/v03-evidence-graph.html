@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evidence Graph</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { padding: 20px 16px 40px; }
+  .head { max-width: 1400px; margin: 0 auto 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .head h1 { font-size: 20px; }
+  .canvas { max-width: 1400px; margin: 0 auto; overflow-x: auto; padding: 8px; }
+  svg { display: block; font-family: var(--sans); }
+  .col-t { font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; fill: var(--faint); }
+  .n rect { fill: var(--panel); stroke: var(--line-2); stroke-width: 1.2; transition: opacity .15s; }
+  .n text.l { font: 600 12.5px var(--sans); fill: var(--text); }
+  .n text.s { font: 400 11px var(--mono); fill: var(--muted); }
+  .n.ev rect { stroke: var(--accent); stroke-width: 2.4; fill: var(--accent-soft); }
+  .n.click { cursor: pointer; }
+  .n.dim rect, .n.dim text { opacity: .25; }
+  .n.fired rect { fill: var(--diff-soft); stroke: var(--diff); stroke-width: 2; }
+  .n.blocked rect { fill: var(--rev-soft); stroke: var(--rev); stroke-width: 2; }
+  .n.na rect { stroke-dasharray: 4 3; fill: transparent; }
+  .n.agree rect { fill: var(--same-soft); stroke: var(--same); stroke-width: 2; }
+  .n.ignored rect { stroke-dasharray: 2 3; } .n.ignored text { opacity: .5; }
+  .n.root rect { fill: var(--text); stroke: var(--text); } .n.root text.l, .n.root text.s { fill: var(--bg); }
+  path.e { fill: none; stroke: var(--line-2); stroke-width: 1.5; transition: opacity .15s, stroke .15s; }
+  path.e.ev { stroke: var(--accent); stroke-width: 2.2; }
+  path.e.merge { stroke-dasharray: 5 4; stroke: var(--rev); }
+  path.e.dim { opacity: .12; } path.e.hot { stroke: var(--accent); opacity: 1; stroke-width: 2.6; }
+  .legend { max-width: 1400px; margin: 10px auto 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 2px solid var(--line-2); }
+  .reason { max-width: 1400px; margin: 0 auto 10px; padding: 14px 16px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="head" id="head"></div>
+  <div class="card reason" id="reason"></div>
+  <div class="canvas card"><svg id="g"></svg></div>
+  <div class="legend">
+    <span><i style="border-color:var(--accent);background:var(--accent-soft)"></i>Cited as evidence</span>
+    <span><i style="border-color:var(--diff);background:var(--diff-soft)"></i>Contradiction (clears)</span>
+    <span><i style="border-color:var(--same);background:var(--same-soft)"></i>Agreement</span>
+    <span><i style="border-color:var(--rev);background:var(--rev-soft)"></i>Guard / ambiguity</span>
+    <span><i style="border-style:dashed"></i>Could not check / not evidence</span>
+    <span>Hover a node to trace its links · click an ID to open the record</span>
+  </div>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { esc, pill, chip, rec, onHit } = UX;
+UX.nav("v03-evidence-graph.html");
+const COLS = ["Alert", "Link", "Customer records", "Customer sources", "Checks", "Hit sources", "Watchlist hit"];
+const W = 1360, CW = W / COLS.length, NW = 168, NH = 46, GAP = 14;
+
+function build(h) {
+  const nodes = [], edges = [], ev = new Set(h.evidence);
+  const cut = (t, n) => (t = String(t ?? "")).length > n ? t.slice(0, n - 1) + "…" : t;
+  const add = (id, col, label, sub, cls = "", rid = null) => { nodes.push({ id, col, label: cut(label, 21), sub: cut(sub, 23), cls, rid }); return id; };
+  const link = (a, b, cls = "") => edges.push({ a, b, cls });
+  const c = h.alert.customer;
+  add("alert", 0, c.name.slice(0, 22), `${h.alert_id} · ${c.dob || "no dob"}`, "root");
+  if (h.alert.link) { add("link", 1, h.alert.link.kind.replace("_", " "), h.alert.link.value.slice(0, 22)); link("alert", "link"); }
+  else { add("link", 1, "Search", "name · dob · country · city"); link("alert", "link"); }
+  const shown = new Set();
+  h.persons.forEach(p => p.records.forEach(r => shown.add(r)));
+  h.alert.linked.forEach(r => shown.add(r));
+  [...shown].sort().forEach(r => {
+    const cu = rec(r); const p = h.persons.find(x => x.records.includes(r));
+    add(r, 2, (cu?.full_name || r).slice(0, 22), r + (p ? "" : " · not this person"), (ev.has(r) ? "ev " : "") + (p ? "" : "ignored") + " click", r);
+    if (h.alert.linked.includes(r) || !h.alert.link) link("link", r, ev.has(r) ? "ev" : "");
+  });
+  h.persons.forEach(p => p.merges.forEach(m => link(m.a, m.b, "merge")));
+  const facts = {};
+  const p = UX.person(h);
+  h.persons.forEach(pp => {
+    [...pp.checks, ...pp.notes].forEach(id => {
+      if (nodes.find(n => n.id === id)) return;
+      const r = rec(id); if (!r) return;
+      const ignored = r.kind === "kyc" && r.result !== "approved";
+      const sub = r.kind === "kyc" ? `${r.result} · ${r.checked_at}` : r.channel === "kyc" ? `kyc note · ${r.created_at}` : `note · ${(r.facts?.countries || []).join(",")}`;
+      add(id, 3, id, sub, (ev.has(id) ? "ev " : "") + (ignored ? "ignored " : "") + "click", id);
+      link(r.customer_id || pp.records.find(x => (rec(x)?.email || "").toLowerCase() === (r.requester_email || "").toLowerCase()) || pp.records[0], id, ev.has(id) ? "ev" : "");
+    });
+  });
+  // checks column from trace of the shown person
+  const T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t]));
+  const ck = [["NAME_MISMATCH_VERIFIED", "Name"], ["DOB_MISMATCH", "Date of birth"], ["LOCATION_MISMATCH", "Countries"], ["TEMPORAL_IMPOSSIBILITY", "Age at report"], ["DECEASED", "Death"], ["ENTITY_TYPE_MISMATCH", "Type"]];
+  const agreeInfo = T.AGREEMENT?.detail || "";
+  ck.forEach(([r, l]) => {
+    const t = T[r]; if (!t) return;
+    let cls = { fired: "fired", blocked: "blocked", "n/a": "na", passed: "" }[t.status];
+    if (t.status === "passed" && ((r === "NAME_MISMATCH_VERIFIED" && agreeInfo.startsWith("name agrees")) || (r === "DOB_MISMATCH" && agreeInfo.includes("date of birth agrees")) || (r === "LOCATION_MISMATCH" && !agreeInfo.endsWith("none")))) cls = "agree";
+    add("ck:" + r, 4, l, t.detail.slice(0, 26), cls);
+  });
+  if (p) {
+    if (p.verified_name) link(p.verified_name.src, "ck:NAME_MISMATCH_VERIFIED", ev.has(p.verified_name.src) ? "ev" : "");
+    else p.records.forEach(r => link(r, "ck:NAME_MISMATCH_VERIFIED"));
+    p.dobs.forEach(d => d.src.forEach(s => { link(s, "ck:DOB_MISMATCH", ev.has(s) ? "ev" : ""); link(s, "ck:TEMPORAL_IMPOSSIBILITY"); }));
+    [...new Set(p.countries.map(x => x.src))].forEach(s => link(s, "ck:LOCATION_MISMATCH", ev.has(s) ? "ev" : ""));
+    p.records.slice(0, 1).forEach(r => link(r, "ck:ENTITY_TYPE_MISMATCH"));
+  }
+  // hit side
+  add("hit", 6, h.hit.name.slice(0, 22), `${h.hit_id} · ${(h.hit.primary || h.hit.categories[0] || "").slice(0, 14)}`, "root");
+  add("h:names", 5, "Names & aliases", `${h.hit.names.length} name forms`); link("h:names", "ck:NAME_MISMATCH_VERIFIED"); link("hit", "h:names");
+  add("h:countries", 5, "Country fields", [...new Set(h.hit.countries.map(x => x.code))].join(", ") || "none", h.hit.countries.length ? "" : "na");
+  link("h:countries", "ck:LOCATION_MISMATCH"); link("hit", "h:countries");
+  add("h:type", 5, "Entity type", h.hit.kind); link("h:type", "ck:ENTITY_TYPE_MISMATCH"); link("hit", "h:type");
+  const kinds = [...new Set(h.hit.dobs.filter(x => !x.src.startsWith("SR-")).map(x => x.kind))];
+  kinds.forEach(k => { add("h:" + k, 5, k === "listed date of birth" ? "dobs field" : "Profile notes", h.hit.dobs.filter(x => x.kind === k).map(UX.years).join(", ").slice(0, 24)); link("h:" + k, "ck:DOB_MISMATCH"); link("hit", "h:" + k); });
+  h.hit.searched.filter(s => s.used).forEach(s => { add(s.id, 5, "Search result", `${s.id} · ${s.years.join("/")}`, (ev.has(s.id) ? "ev " : "") + "click", s.id); link(s.id, "ck:DOB_MISMATCH", ev.has(s.id) ? "ev" : ""); link("hit", s.id); });
+  const rej = h.hit.searched.filter(s => !s.used).length;
+  if (rej) { add("h:rej", 5, `${rej} namesake results`, "rejected: wrong role/country", "ignored"); link("hit", "h:rej"); }
+  if (h.hit.reports.length) { add("h:rep", 5, "Dated reports", `earliest ${h.hit.reports[0]}`); link("h:rep", "ck:TEMPORAL_IMPOSSIBILITY"); link("hit", "h:rep"); }
+  if (h.hit.death) { add("h:death", 5, "Date of death", h.hit.death, ev.has(h.hit_id + "#deceased_date") ? "ev" : ""); link("h:death", "ck:DECEASED"); link("hit", "h:death"); }
+  return { nodes, edges: edges.filter(e => nodes.find(n => n.id === e.a) && nodes.find(n => n.id === e.b)) };
+}
+
+function render(h) {
+  document.getElementById("head").innerHTML = `${pill(h.decision)}<h1>${esc(h.alert.customer.name)} <span class="faint" style="font-weight:400">vs</span> ${esc(h.hit.name)}</h1><span class="mono faint">${h.code}</span>`;
+  document.getElementById("reason").innerHTML = `${esc(h.reason)} <span style="margin-left:6px">${h.evidence.map(e => chip(e, true)).join(" ")}</span>`;
+  const { nodes, edges } = build(h);
+  const byCol = COLS.map((_, i) => nodes.filter(n => n.col === i));
+  const H = Math.max(360, 60 + Math.max(...byCol.map(c => c.length)) * (NH + GAP));
+  byCol.forEach(col => { const tot = col.length * (NH + GAP) - GAP; col.forEach((n, i) => { n.x = n.col * CW + (CW - NW) / 2; n.y = 50 + (H - 60 - tot) / 2 + i * (NH + GAP); }); });
+  const pos = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const svg = document.getElementById("g");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.setAttribute("height", H);
+  const path = e => {
+    const a = pos[e.a], b = pos[e.b];
+    if (a.col === b.col) { const x = a.x + NW, y1 = a.y + NH / 2, y2 = b.y + NH / 2; return `M${x},${y1} C${x + 30},${y1} ${x + 30},${y2} ${x},${y2}`; }
+    const [l, r] = a.col < b.col ? [a, b] : [b, a];
+    const x1 = l.x + NW, y1 = l.y + NH / 2, x2 = r.x, y2 = r.y + NH / 2, m = (x1 + x2) / 2;
+    return `M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}`;
+  };
+  svg.innerHTML = COLS.map((t, i) => `<text class="col-t" x="${i * CW + CW / 2}" y="22" text-anchor="middle">${t}</text>`).join("") +
+    edges.map((e, i) => `<path class="e ${e.cls}" data-a="${esc(e.a)}" data-b="${esc(e.b)}" d="${path(e)}"/>`).join("") +
+    nodes.map(n => `<g class="n ${n.cls}" data-id="${esc(n.id)}" ${n.rid ? `data-rec="${esc(n.rid)}"` : ""} transform="translate(${n.x},${n.y})">
+      <rect width="${NW}" height="${NH}" rx="10"/><text class="l" x="12" y="19">${esc(n.label)}</text><text class="s" x="12" y="35">${esc(n.sub)}</text></g>`).join("");
+  svg.querySelectorAll(".n").forEach(g => {
+    g.onmouseenter = () => {
+      const id = g.dataset.id, near = new Set([id]);
+      svg.querySelectorAll("path.e").forEach(p => { const hit = p.dataset.a === id || p.dataset.b === id; p.classList.toggle("hot", hit); p.classList.toggle("dim", !hit); if (hit) { near.add(p.dataset.a); near.add(p.dataset.b); } });
+      svg.querySelectorAll(".n").forEach(x => x.classList.toggle("dim", !near.has(x.dataset.id)));
+    };
+    g.onmouseleave = () => svg.querySelectorAll(".dim,.hot").forEach(x => x.classList.remove("dim", "hot"));
+  });
+}
+onHit(render);
+</script>
+</body>
+</html>

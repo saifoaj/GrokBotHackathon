@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Timeline</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 60px; display: grid; gap: 16px; }
+  .head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .head h1 { font-size: 22px; }
+  .tl { padding: 16px 8px 8px; overflow-x: auto; }
+  svg text { font-family: var(--sans); }
+  .axis line { stroke: var(--line); } .axis text { font-size: 11px; fill: var(--faint); }
+  .lane-t { font: 600 12px var(--sans); fill: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .ev text { font-size: 11.5px; fill: var(--text); } .ev text.sub { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+  .ev { cursor: default; } .ev[data-rec] { cursor: pointer; }
+  .callout { padding: 16px 18px; display: grid; gap: 6px; border-left: 5px solid var(--c); }
+  .callout b.big { font-size: 22px; }
+  .log { padding: 6px 0; }
+  .log .row { display: grid; grid-template-columns: 110px 22px 1fr; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); align-items: start; }
+  .log .row:last-child { border: 0; }
+  .log .d { font: 500 12px var(--mono); color: var(--muted); padding-top: 2px; }
+  .log .ic { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; }
+  .grid2 { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="head" id="head"></div>
+  <div class="card tl"><svg id="svg"></svg></div>
+  <div class="grid2">
+    <div class="card callout" id="callout"></div>
+    <div class="card log" id="log"></div>
+  </div>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { esc, pill, chip, rec, years, onHit } = UX;
+UX.nav("v04-timeline.html");
+const frac = s => { const m = String(s).match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/); if (!m) return null; return +m[1] + ((+(m[2] || 1)) - 1) / 12 + ((+(m[3] || 1)) - 1) / 365; };
+
+function render(h) {
+  const p = UX.person(h);
+  document.getElementById("head").innerHTML = `${pill(h.decision)}<h1>${esc(h.alert.customer.name)} <span class="faint" style="font-weight:400">vs</span> ${esc(h.hit.name)}</h1><span class="mono faint">${h.code}</span>`;
+  const C = [], Hh = [], events = [];   // lanes
+  if (p) {
+    p.dobs.forEach(d => C.push({ t: frac(d.v), label: "Born", sub: d.v, kind: "birth", src: d.src[0], color: "var(--accent)" }));
+    if (p.dobs.length === 1) { const t = frac(p.dobs[0].v); C.push({ t: t + 16, label: "Turns 16", sub: String(Math.floor(t + 16)), kind: "sixteen", color: "var(--faint)" }); }
+    p.checks.forEach(id => { const r = rec(id); if (r) C.push({ t: frac(r.checked_at), label: `KYC ${r.result}`, sub: id, d: r.checked_at, kind: "tick", src: id, color: r.result === "approved" ? "var(--diff)" : "var(--same)" }); });
+    p.notes.forEach(id => { const r = rec(id); if (r && r.channel === "kyc") C.push({ t: frac(r.created_at), label: "KYC note", sub: id, d: r.created_at, kind: "tick", src: id, color: "var(--diff)" }); });
+  }
+  h.hit.dobs.forEach(x => Hh.push({ t: x.years[0], t2: x.years[x.years.length - 1] + 1, label: `Born ${years(x)}`, sub: x.src.startsWith("SR-") ? x.src : x.kind, kind: "band", src: x.src.startsWith("SR-") ? x.src : null, color: "var(--rev)" }));
+  h.hit.reports.forEach((r, i) => Hh.push({ t: frac(r), label: i === 0 ? "Earliest report" : "Report", sub: r, kind: "tick", color: i === 0 ? "var(--same)" : "var(--faint)" }));
+  if (h.hit.death) Hh.push({ t: frac(h.hit.death), label: "Died", sub: h.hit.death, kind: "tick", color: "var(--text)" });
+  const scr = frac(h.alert.screened_at);
+  const all = [...C, ...Hh].flatMap(e => [e.t, e.t2 || e.t]).filter(x => x != null).concat([scr]);
+  let lo = Math.floor(Math.min(...all)) - 3, hi = Math.ceil(Math.max(...all)) + 2;
+  if (hi - lo < 12) lo = hi - 12;
+  const W = 1180, L = 120, R = 30, X = t => L + (t - lo) / (hi - lo) * (W - L - R);
+  const laneY = { C: 70, H: 200 }, Hgt = 290;
+  const step = (hi - lo) > 60 ? 10 : (hi - lo) > 25 ? 5 : 2;
+  let s = `<g class="axis">${Array.from({ length: Math.floor((hi - lo) / step) + 1 }, (_, i) => { const y = Math.ceil(lo / step) * step + i * step; return y > hi ? "" : `<line x1="${X(y)}" x2="${X(y)}" y1="30" y2="${Hgt - 20}"/><text x="${X(y)}" y="${Hgt - 4}" text-anchor="middle">${y}</text>`; }).join("")}</g>`;
+  s += `<text class="lane-t" x="10" y="${laneY.C + 4}">Customer</text><text class="lane-t" x="10" y="${laneY.H + 4}">Watchlist</text>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${laneY.C}" y2="${laneY.C}" stroke="var(--line-2)" stroke-width="2"/><line x1="${L}" x2="${W - R}" y1="${laneY.H}" y2="${laneY.H}" stroke="var(--line-2)" stroke-width="2"/>`;
+  s += `<line x1="${X(scr)}" x2="${X(scr)}" y1="24" y2="${Hgt - 20}" stroke="var(--accent)" stroke-dasharray="4 4"/><text x="${X(scr) - 4}" y="${Hgt - 26}" text-anchor="end" style="font-size:11px;fill:var(--accent)">screened ${esc(h.alert.screened_at)}</text>`;
+  const draw = (ev, y, up) => ev.sort((a, b) => a.t - b.t).map((e, i) => {
+    const x = X(e.t), dy = up ? -(18 + (i % 3) * 16) : (22 + (i % 3) * 16);
+    const attr = e.src ? `data-rec="${esc(e.src)}"` : "";
+    if (e.kind === "band") return `<g class="ev" ${attr}><rect x="${x}" y="${y - 9}" width="${Math.max(4, X(e.t2) - x)}" height="18" rx="5" fill="var(--rev-soft)" stroke="var(--rev)"/><text x="${x}" y="${y + 38 + (i % 3) * 14}">${esc(e.label)}</text><text class="sub" x="${x}" y="${y + 50 + (i % 3) * 14}">${esc(e.sub)}</text></g>`;
+    if (e.kind === "birth") return `<g class="ev" ${attr}><path d="M${x},${y - 9} l9,9 l-9,9 l-9,-9z" fill="${e.color}"/><text x="${x}" y="${y + dy}" text-anchor="middle" font-weight="600">${esc(e.label)} ${esc(e.sub)}</text></g>`;
+    if (e.kind === "sixteen") return `<g class="ev"><line x1="${x}" x2="${x}" y1="${y - 26}" y2="${laneY.H + 12}" stroke="var(--faint)" stroke-dasharray="2 4"/><text x="${x + 4}" y="${y - 16}" style="fill:var(--faint)">turns 16</text></g>`;
+    return `<g class="ev" ${attr}><circle cx="${x}" cy="${y}" r="6" fill="${e.color}" stroke="var(--panel)" stroke-width="2"/><text x="${x}" y="${y + dy}" text-anchor="middle">${esc(e.label)}</text><text class="sub" x="${x}" y="${y + dy + 12}" text-anchor="middle">${esc(e.sub)}</text></g>`;
+  }).join("");
+  s += draw(C, laneY.C, true) + draw(Hh, laneY.H, false);
+  // gap bracket between customer DOB and nearest hit birth band
+  let gapTxt = "";
+  if (p && p.dobs.length === 1 && h.hit.reports.length) {
+    const b = frac(p.dobs[0].v), r0 = frac(h.hit.reports[0]), age = Math.floor(r0 - b), y = (laneY.C + laneY.H) / 2 + 26, col = age < 16 ? "var(--diff)" : "var(--muted)";
+    s += `<line x1="${X(b)}" x2="${X(r0)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="2"/><line x1="${X(b)}" x2="${X(b)}" y1="${y - 5}" y2="${y + 5}" stroke="${col}" stroke-width="2"/><line x1="${X(r0)}" x2="${X(r0)}" y1="${y - 5}" y2="${y + 5}" stroke="${col}" stroke-width="2"/>
+      <text x="${(X(b) + X(r0)) / 2}" y="${y - 6}" text-anchor="middle" style="font-weight:700;font-size:12px;fill:${col}">about ${Math.max(age, 0)} at the first report${age < 16 ? " (under 16)" : ""}</text>`;
+  }
+  if (p && p.dobs.length === 1 && h.hit.dobs.length) {
+    const cy = frac(p.dobs[0].v), cyr = Math.floor(cy);
+    const near = h.hit.dobs.map(x => ({ x, d: Math.min(...x.years.map(y => Math.abs(y - cyr))) })).sort((a, b) => a.d - b.d)[0];
+    const tx = near.x.years.reduce((a, b) => Math.abs(b - cyr) < Math.abs(a - cyr) ? b : a) + .5;
+    gapTxt = near.d === 0 ? "same birth year" : `${near.d} year${near.d > 1 ? "s" : ""} apart`;
+    s += `<path d="M${X(cy)},${laneY.C + 14} C${X(cy)},${(laneY.C + laneY.H) / 2} ${X(tx)},${(laneY.C + laneY.H) / 2} ${X(tx)},${laneY.H - 12}" fill="none" stroke="${near.d > 1 ? "var(--diff)" : "var(--same)"}" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="${(X(cy) + X(tx)) / 2 + 8}" y="${(laneY.C + laneY.H) / 2 + 4}" style="font-weight:700;font-size:13px;fill:${near.d > 1 ? "var(--diff)" : "var(--same)"}">${gapTxt}</text>`;
+  }
+  const svg = document.getElementById("svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${Hgt}`); svg.setAttribute("width", W); svg.setAttribute("height", Hgt); svg.innerHTML = s;
+
+  // callout: what time tells us
+  const T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t]));
+  const color = { DIFFERENT_ENTITY: "var(--diff)", SAME_ENTITY: "var(--same)", REVIEW: "var(--rev)" }[h.decision];
+  document.getElementById("callout").style.setProperty("--c", color);
+  const headline = T.DECEASED?.status === "fired" ? "The listed person died before screening"
+    : T.TEMPORAL_IMPOSSIBILITY?.status === "fired" ? T.TEMPORAL_IMPOSSIBILITY.detail.replace(/^at most/, "At most")
+    : gapTxt ? `Birth years ${gapTxt}` : "Dates cannot be compared";
+  document.getElementById("callout").innerHTML = `<span class="muted">What the dates say</span><b class="big">${esc(headline)}</b>
+    ${["DOB_MISMATCH", "TEMPORAL_IMPOSSIBILITY", "DECEASED"].map(r => T[r] ? `<div><span class="st ${T[r].status}">${UX.RULE[r]}</span> <span class="muted">${esc(T[r].detail)}</span></div>` : "").join("")}
+    <p style="margin:8px 0 0">${esc(h.reason)}</p><div>${h.evidence.map(e => chip(e, true)).join(" ")}</div>`;
+  const rows = [...C.filter(e => e.kind !== "sixteen").map(e => ({ ...e, lane: "Customer" })), ...Hh.map(e => ({ ...e, lane: "Watchlist" })), { t: scr, label: "Screened by the bank", sub: h.alert.screened_at, lane: "Alert", color: "var(--accent)" }]
+    .filter(e => e.t != null).sort((a, b) => a.t - b.t);
+  document.getElementById("log").innerHTML = rows.map(e => `<div class="row"><span class="d">${e.kind === "band" ? years({ years: [e.t, e.t2 - 1] }).replace(/(\d+) or \1/, "$1") : esc(e.d || e.sub)}</span><span class="ic" style="background:${e.color}"></span>
+    <span><b>${esc(e.label)}</b> <span class="faint">· ${e.lane}</span> ${e.src ? chip(e.src, h.evidence.includes(e.src)) : ""}</span></div>`).join("");
+}
+onHit(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Screening Explainer</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { max-width: 1160px; margin: 0 auto; padding: 40px 16px 64px; }
+  .hero h1 { font-size: 34px; letter-spacing: -.02em; }
+  .hero p { font-size: 16px; max-width: 720px; }
+  .kpis { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 32px; }
+  .kpi { padding: 14px 16px; min-width: 150px; }
+  .kpi b { display: block; font-size: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .v { padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: transform .12s, border-color .12s; color: var(--text); }
+  .v:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .v .n { font: 600 12px var(--mono); color: var(--accent); }
+  .v h3 { font-size: 18px; }
+  .thumb { height: 96px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  .thumb span { position: absolute; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <p class="faint mono">Same Person or Not? · deterministic rule engine · no LLM</p>
+    <h1>Ten ways to explain a screening decision</h1>
+    <p class="muted">Every page reads the same run of <code>system/screen.py</code> on the dev set. Pick a hit in the search box at the top of any page, then flip between variants with ← → or the dropdown: the selected hit follows you. Click any <span class="chip">ID</span> to open the raw record behind it.</p>
+  </section>
+  <section class="kpis" id="kpis"></section>
+  <section class="grid" id="grid"></section>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { D, VARIANTS, esc } = UX;
+UX.nav("index.html", { noPicker: true });
+const s = D.stats, n = D.hits.length;
+document.getElementById("kpis").innerHTML = [
+  ["Hits decided", n], ["Cleared", `${s.decisions.DIFFERENT_ENTITY} · ${Math.round(100 * s.decisions.DIFFERENT_ENTITY / n)}%`],
+  ["Matches", s.decisions.SAME_ENTITY], ["Sent to review", s.decisions.REVIEW], ["Alerts closed", `${s.alerts_closed} / ${s.alerts}`],
+  ["Practice labels", `${s.labels_right} / ${s.labels} right`],
+].map(([k, v]) => `<div class="card kpi"><span class="muted">${k}</span><b>${v}</b></div>`).join("");
+const shapes = [
+  [[4,6,28,88],[36,6,60,20],[36,32,60,58]], [[40,6,20,14],[40,26,20,14],[40,46,20,14],[40,66,20,14]], [[6,40,12,16],[30,20,12,16],[30,60,12,16],[56,40,12,16],[80,40,12,16]],
+  [[4,30,92,3],[4,62,92,3],[20,24,3,14],[50,56,30,14],[70,24,3,14]], [[4,8,42,84],[54,8,42,84]], [[10,10,80,8],[10,26,70,8],[10,42,76,8],[10,58,60,8]],
+  [[4,8,28,30],[36,8,28,30],[68,8,28,30],[4,46,92,46]], [[4,8,92,26],[4,40,92,26],[4,72,92,20]], [[4,8,92,84]], [[4,8,26,84],[34,8,36,84],[74,8,22,84]],
+];
+const col = ["var(--accent)", "var(--diff)", "var(--rev)", "var(--same)", "var(--line-2)"];
+document.getElementById("grid").innerHTML = VARIANTS.map((v, i) => `
+  <a class="card v" data-vlink="${v[0]}" href="${v[0]}">
+    <div class="thumb">${shapes[i].map((r, j) => `<span style="left:${r[0]}%;top:${r[1]}%;width:${r[2]}%;height:${r[3]}%;background:${col[(i + j) % 5]};opacity:${i === 8 ? .35 : .55}"></span>`).join("")}
+      ${i === 8 ? Array.from({length: 48}, (_, k) => `<span style="left:${6 + (k % 8) * 11.5}%;top:${12 + Math.floor(k / 8) * 13}%;width:9%;height:9%;background:${col[(k * 7) % 4]};opacity:.7"></span>`).join("") : ""}</div>
+    <span class="n">${String(i + 1).padStart(2, "0")}</span>
+    <h3>${esc(v[1])}</h3>
+    <span class="muted">${esc(v[2])}</span>
+  </a>`).join("");
+</script>
+</body>
+</html>

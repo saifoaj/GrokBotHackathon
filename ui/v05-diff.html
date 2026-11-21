@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Side-by-side Diff</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; display: grid; gap: 18px; }
+  .top { display: grid; grid-template-columns: 1fr 120px 1fr; gap: 0; align-items: stretch; }
+  .side { padding: 18px 20px; }
+  .side .who { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .side h2 { font-size: 22px; margin: 4px 0 2px; }
+  .mid { display: grid; place-items: center; }
+  .vs { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--c); box-shadow: 0 0 0 8px color-mix(in srgb, var(--c) 18%, transparent); padding: 8px; line-height: 1.2; }
+  .rows { overflow: hidden; }
+  .row { display: grid; grid-template-columns: 1fr 120px 1fr; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row > div { padding: 14px 18px; }
+  .row .lab { grid-column: 1 / -1; padding: 10px 18px 0; font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+  .row .c { text-align: right; } .row .m { display: grid; place-items: center; padding: 14px 4px; }
+  .sym { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
+  .sym.agree { background: var(--same-soft); color: var(--same); }
+  .sym.contra { background: var(--diff-soft); color: var(--diff); }
+  .sym.guard { background: var(--rev-soft); color: var(--rev); }
+  .sym.unk { background: var(--na-soft); color: var(--faint); border: 1px dashed var(--line-2); }
+  .sym.ok { background: var(--panel-2); color: var(--muted); }
+  .val { font-size: 15px; font-weight: 500; } .note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .align { padding: 18px 20px; }
+  .align h3, .recs h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 12px; }
+  .pair { display: grid; grid-template-columns: 1fr 200px 1fr; align-items: center; gap: 8px; padding: 5px 0; }
+  .part { font: 500 14px var(--mono); padding: 6px 12px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+  .pair .l { justify-self: end; } .pair .r { justify-self: start; }
+  .pair .link { position: relative; text-align: center; font-size: 11px; color: var(--muted); }
+  .pair .link::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid var(--line-2); z-index: 0; }
+  .pair .link span { position: relative; background: var(--panel); padding: 0 8px; z-index: 1; }
+  .pair.hit .link::before { border-color: var(--same); } .pair.hit .part { border-color: var(--same); }
+  .pair.miss .part { opacity: .45; text-decoration: line-through; } .pair.miss .link::before { border-top-style: dashed; }
+  .recs { padding: 18px 20px; overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.diffcell { background: var(--rev-soft); }
+  @media (max-width: 800px) { .top, .row { grid-template-columns: 1fr 60px 1fr; } .vs { width: 56px; height: 56px; font-size: 10px; } .pair { grid-template-columns: 1fr 90px 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="card top" id="top"></div>
+  <div class="card rows" id="rows"></div>
+  <div class="card align" id="align"></div>
+  <div class="card recs" id="recs"></div>
+</main>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { esc, chip, rec, years, DEC, onHit } = UX;
+UX.nav("v05-diff.html");
+const SYM = { agree: "=", contra: "≠", guard: "!", unk: "?", ok: "~" };
+
+function render(h) {
+  const p = UX.person(h), c = h.alert.customer;
+  const color = { DIFFERENT_ENTITY: "var(--diff)", SAME_ENTITY: "var(--same)", REVIEW: "var(--rev)" }[h.decision];
+  document.getElementById("top").innerHTML = `
+    <div class="side"><div class="who">Customer ${h.record ? "· " + chip(h.record, h.evidence.includes(h.record)) : ""}</div><h2>${esc(p?.verified_name?.v || p?.names[0]?.v || c.name)}</h2><div class="muted">screened as “${esc(c.name)}” · ${esc(h.alert_id)}</div></div>
+    <div class="mid"><div class="vs" style="--c:${color}">${DEC[h.decision]}</div></div>
+    <div class="side"><div class="who">Watchlist hit · <span class="mono">${h.hit_id}</span></div><h2>${esc(h.hit.name)}</h2><div class="muted">${esc(h.hit.categories.join(", "))}${h.hit.position ? " · " + esc(h.hit.position.slice(0, 80)) : ""}</div></div>`;
+  const T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t]));
+  const ag = T.AGREEMENT?.detail || "";
+  const symFor = (rule, agreeFlag) => { const t = T[rule]; if (!t) return "unk"; if (t.status === "fired") return "contra"; if (t.status === "blocked") return "guard"; if (t.status === "n/a") return "unk"; return agreeFlag ? "agree" : "ok"; };
+  const uniq = a => [...new Set(a)];
+  const rows = [
+    ["Type", p?.kind || c.entity_type, "", h.hit.kind, "", symFor("ENTITY_TYPE_MISMATCH", true)],
+    ["Name", p?.verified_name ? esc(p.verified_name.v) : uniq((p?.names || []).map(n => n.v)).map(esc).join("<br>") || esc(c.name),
+      p?.verified_name ? `verified by ${chip(p.verified_name.src, h.evidence.includes(p.verified_name.src))}` : "not verified: record names",
+      esc(h.hit.name), h.hit.aliases.length ? `+ ${h.hit.aliases.length} alias${h.hit.aliases.length > 1 ? "es" : ""}: ${esc(h.hit.aliases.slice(0, 3).join(" · "))}` : "no aliases",
+      symFor("NAME_MISMATCH_VERIFIED", ag.startsWith("name agrees")), T.NAME_MISMATCH_VERIFIED?.detail],
+    ["Date of birth", (p?.dobs || []).map(d => esc(d.v)).join("<br>") || "unknown",
+      (p?.dobs || []).map(d => d.src.map(s => chip(s, h.evidence.includes(s))).join(" ")).join(" ") + (p?.dob_verified ? " verified" : p?.dobs.length > 1 ? " conflicting records" : ""),
+      h.hit.dobs.map(x => years(x)).map(esc).join("<br>") || "unknown", uniq(h.hit.dobs.map(x => x.kind)).join(", ") + " " + h.hit.dobs.filter(x => x.src.startsWith("SR-")).map(x => chip(x.src, h.evidence.includes(x.src))).join(" "),
+      symFor("DOB_MISMATCH", ag.includes("date of birth agrees")), T.DOB_MISMATCH?.detail],
+    ["Countries", uniq((p?.countries || []).map(x => x.name)).map(esc).join(", ") || "none", uniq((p?.countries || []).map(x => x.src)).map(s => chip(s, h.evidence.includes(s))).join(" "),
+      uniq(h.hit.countries.map(x => x.name)).map(esc).join(", ") || "none", uniq(h.hit.countries.map(x => x.src)).join(", "),
+      symFor("LOCATION_MISMATCH", !ag.endsWith("none")), T.LOCATION_MISMATCH?.detail],
+    ["Time", `screened ${esc(h.alert.screened_at)}`, "", h.hit.reports.length ? `first report ${esc(h.hit.reports[0])}` : (h.hit.death ? "" : "no dated report"), h.hit.death ? `died ${esc(h.hit.death)}` : "",
+      T.DECEASED?.status === "fired" || T.TEMPORAL_IMPOSSIBILITY?.status === "fired" ? "contra" : (T.TEMPORAL_IMPOSSIBILITY?.status === "passed" ? "ok" : "unk"), T.TEMPORAL_IMPOSSIBILITY?.detail],
+  ];
+  document.getElementById("rows").innerHTML = rows.map(([lab, cv, cn, hv, hn, sym, why]) => `
+    <div class="row"><div class="lab">${lab}</div>
+      <div class="c"><div class="val">${cv}</div><div class="note">${cn}</div></div>
+      <div class="m"><div class="sym ${sym}" title="${esc(why || "")}">${SYM[sym]}</div></div>
+      <div><div class="val">${hv}</div><div class="note">${hn}</div></div>
+    </div>`).join("") + `<div class="row"><div style="grid-column:1/-1;padding:14px 18px;background:var(--panel-2)"><b>${esc(h.code)}</b> · ${esc(h.reason)}</div></div>`;
+  const al = p?.alignment || [];
+  const matched = al.filter(x => x.c && x.h).length;
+  document.getElementById("align").innerHTML = `<h3>Name parts, aligned (POLICY 8) · ${matched} part${matched === 1 ? "" : "s"} match</h3>` + (al.length ? al.map(x => `
+    <div class="pair ${x.c && x.h ? "hit" : "miss"}"><span class="part l">${esc(x.c || "—")}</span><div class="link"><span>${esc(x.how)}</span></div><span class="part r">${esc(x.h || "—")}</span></div>`).join("")
+    : '<span class="faint">No customer name to align.</span>') + `<p class="faint" style="margin:12px 0 0;font-size:12px">Names agree when at least two parts match, or every part of the shorter name matches. Parts match if identical, listed as variants, written together/apart, or within 1 edit (4–6 letters) / 2 edits (7+ letters).</p>`;
+  const recs = p ? p.records.map(rec).filter(Boolean) : [];
+  const F = ["record_id", "full_name", "preferred_name", "dob", "nationality", "residence_country", "city", "email", "phone", "status", "onboarded_at"];
+  document.getElementById("recs").innerHTML = `<h3>The customer's records ${recs.length > 1 ? "(one person, several records: differences highlighted)" : ""}</h3>` +
+    (recs.length ? `<table><tr>${F.map(f => `<th>${f}</th>`).join("")}</tr>${recs.map(r => `<tr>${F.map(f => `<td class="${recs.length > 1 && new Set(recs.map(x => x[f])).size > 1 ? "diffcell" : ""}">${f === "record_id" ? chip(r[f], h.evidence.includes(r[f])) : esc(r[f] ?? "–")}</td>`).join("")}</tr>`).join("")}</table>` : '<span class="faint">No customer record found.</span>');
+}
+onHit(render);
+</script>
+</body>
+</html>

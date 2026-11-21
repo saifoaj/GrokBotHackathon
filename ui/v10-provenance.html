@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Provenance</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .wrap { display: grid; grid-template-columns: 300px 1fr 340px; height: calc(100vh - 57px); }
+  .pane { overflow: auto; min-height: 0; }
+  .src { border-right: 1px solid var(--line); background: var(--panel); }
+  .grp { padding: 12px 14px 4px; font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+  .s { padding: 8px 14px; cursor: pointer; display: grid; gap: 2px; border-left: 3px solid transparent; }
+  .s:hover { background: var(--panel-2); } .s.sel { background: var(--accent-soft); border-left-color: var(--accent); }
+  .s .t { display: flex; justify-content: space-between; gap: 6px; align-items: center; font: 500 12.5px var(--mono); }
+  .s .d { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font: 600 10px var(--sans); padding: 1px 6px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; }
+  .badge.ev { background: var(--accent); color: #fff; } .badge.used { background: var(--diff-soft); color: var(--diff); } .badge.ign { background: var(--na-soft); color: var(--faint); } .badge.rej { background: var(--same-soft); color: var(--same); }
+  .doc { padding: 28px 32px; display: grid; gap: 16px; align-content: start; }
+  .doc h1 { font-size: 20px; } .doc .text { font-size: 17px; line-height: 1.8; padding: 20px 22px; }
+  .fields { display: grid; grid-template-columns: 170px 1fr; font-size: 13px; }
+  .fields div { padding: 7px 10px; border-bottom: 1px solid var(--line); word-break: break-word; }
+  .fields div:nth-child(odd) { color: var(--muted); }
+  .fields .hot { background: var(--accent-soft); }
+  .flow { border-left: 1px solid var(--line); background: var(--panel); padding: 18px; display: grid; gap: 14px; align-content: start; }
+  .flow h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .fact { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+  .fact .k { font-size: 12px; color: var(--muted); } .fact .v { font-weight: 600; } .fact .to { font-size: 12px; }
+  .arrow { color: var(--accent); font-weight: 700; }
+  .sr { font-size: 12.5px; width: 100%; border-collapse: collapse; } .sr td, .sr th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .ok { color: var(--diff); font-weight: 700; } .no { color: var(--same); font-weight: 700; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns: 1fr; height: auto; } .src { max-height: 40vh; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="pane src" id="src"></nav>
+  <section class="pane doc" id="doc"></section>
+  <aside class="pane flow" id="flow"></aside>
+</div>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { esc, chip, rec, years, highlight, RULE, onHit } = UX;
+UX.nav("v10-provenance.html");
+let sel = null, lastHit = null;
+function sources(h) {
+  const ev = new Set(h.evidence), out = [];
+  const p = UX.person(h);
+  h.persons.forEach(pp => {
+    pp.records.forEach(r => out.push({ g: "Customer records", id: r, d: rec(r)?.full_name, b: ev.has(r) ? "ev" : "used" }));
+    pp.checks.forEach(r => { const k = rec(r); out.push({ g: "Identity checks", id: r, d: `${k.result} · ${k.checked_at} · ${k.verified_name}`, b: ev.has(r) ? "ev" : k.result === "approved" ? "used" : "ign" }); });
+    pp.notes.forEach(r => { const n = rec(r); out.push({ g: "Notes", id: r, d: n.text, b: ev.has(r) ? "ev" : "used" }); });
+  });
+  out.push({ g: "Watchlist profile", id: "PROFILE", d: h.hit.name, b: "used" });
+  h.hit.searched.forEach(s => out.push({ g: `Search results for “${h.hit.name}”`, id: s.id, d: rec(s.id)?.snippet, b: ev.has(s.id) ? "ev" : s.used ? "used" : "rej" }));
+  return out;
+}
+const BADGE = { ev: "evidence", used: "read", ign: "ignored", rej: "namesake" };
+function factsFrom(h, id) {
+  const out = [];
+  h.persons.forEach(p => {
+    if (p.verified_name?.src === id) out.push(["Verified legal name", p.verified_name.v, "NAME_MISMATCH_VERIFIED"]);
+    p.dobs.forEach(d => d.src.includes(id) && out.push([p.dob_verified ? "Verified date of birth" : "Declared date of birth", d.v, "DOB_MISMATCH"]));
+    p.countries.filter(c => c.src === id).forEach(c => out.push(["Country tie", c.name, "LOCATION_MISMATCH"]));
+  });
+  if (id === "PROFILE") {
+    h.hit.dobs.filter(x => !x.src.startsWith("SR-")).forEach(x => out.push([`Birth (${x.kind})`, years(x), "DOB_MISMATCH"]));
+    [...new Set(h.hit.countries.map(c => c.name))].forEach(c => out.push(["Country tie", c, "LOCATION_MISMATCH"]));
+    h.hit.reports.slice(0, 1).forEach(r => out.push(["Earliest dated report", r, "TEMPORAL_IMPOSSIBILITY"]));
+    if (h.hit.death) out.push(["Date of death", h.hit.death, "DECEASED"]);
+  }
+  const s = h.hit.searched.find(x => x.id === id);
+  if (s) out.push(["Possible birth years", `${s.years.join(" or ")} (age ${s.age} in ${s.event})`, s.used ? "DOB_MISMATCH" : null]);
+  return out;
+}
+function render(h) {
+  if (lastHit !== h.hit_id) { lastHit = h.hit_id; sel = h.evidence.find(e => !e.includes("#")) || h.record || "PROFILE"; }
+  const S = sources(h);
+  const groups = [...new Set(S.map(s => s.g))];
+  document.getElementById("src").innerHTML = groups.map(g => `<div class="grp">${esc(g)}</div>` + S.filter(s => s.g === g).map(s => `
+    <div class="s ${s.id === sel ? "sel" : ""}" data-s="${esc(s.id)}"><div class="t"><span>${esc(s.id === "PROFILE" ? h.hit_id : s.id)}</span><span class="badge ${s.b}">${BADGE[s.b]}</span></div><div class="d">${esc(s.d || "")}</div></div>`).join("")).join("");
+  const p = UX.person(h);
+  // document pane
+  let body;
+  if (sel === "PROFILE") {
+    body = `<h1>Watchlist profile · ${esc(h.hit.name)}</h1>
+      <div class="card fields">${[["categories", h.hit.categories.join(", ")], ["dobs", h.hit.raw_dobs.join(", ") || "–"], ["countries", h.hit.raw_countries.countries.join("; ") || "–"], ["nationality", h.hit.raw_countries.nationality.join("; ") || "–"], ["citizenship", h.hit.raw_countries.citizenship.join("; ") || "–"], ["addresses", h.hit.raw_countries.addresses.join("; ") || "–"], ["place_of_birth", h.hit.raw_countries.place_of_birth || "–"], ["deceased_date", h.hit.deceased_date || "–"], ["aliases", h.hit.aliases.join("; ") || "–"]].map(([k, v]) => `<div>${k}</div><div>${esc(v)}</div>`).join("")}</div>
+      ${h.hit.first_paragraph ? `<div class="faint" style="font-size:12px">Profile notes · first paragraph (used for date of birth)</div><div class="card text">${highlight(h.hit.first_paragraph)}</div>` : ""}
+      ${h.hit.report_lines.length ? `<div class="faint" style="font-size:12px">Dated report lines (only the exact “According to …; Month D, YYYY:” form counts)</div><div class="card text" style="font-size:14px">${h.hit.report_lines.map(l => highlight(l)).join("<br><br>")}</div>` : ""}`;
+  } else {
+    const r = rec(sel) || {};
+    const text = r.text || r.snippet;
+    const hotKeys = { customer: ["dob", "nationality", "residence_country", "full_name"], kyc: ["verified_name", "verified_dob", "document_country", "result"] }[r.kind] || [];
+    body = `<h1><span class="mono">${esc(sel)}</span> <span class="muted" style="font-weight:400;font-size:15px">${UX.kindOf(sel)}</span></h1>
+      ${r.kind === "kyc" && r.result !== "approved" ? `<div class="st blocked">This check was ${esc(r.result)}: it is not evidence (POLICY 4).</div>` : ""}
+      ${text ? `<div class="card text">${highlight(text)}</div>` : ""}
+      <div class="card fields">${Object.entries(r).filter(([k, v]) => !["kind", "text", "snippet", "facts"].includes(k) && v != null).map(([k, v]) => `<div class="${hotKeys.includes(k) ? "hot" : ""}">${esc(k)}</div><div class="${hotKeys.includes(k) ? "hot" : ""}">${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("")}</div>`;
+  }
+  document.getElementById("doc").innerHTML = body + `<p class="faint" style="font-size:12px">Highlights: <mark class="hl date">dates</mark> <mark class="hl age">ages</mark> <mark class="hl country">countries</mark> <mark class="hl name">names</mark> <mark class="hl phrase">listing phrases</mark></p>`;
+  // flow pane
+  const F = factsFrom(h, sel);
+  const T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t]));
+  const srch = h.hit.searched;
+  document.getElementById("flow").innerHTML = `<h3>What this source contributed</h3>` +
+    (F.length ? F.map(([k, v, rule]) => `<div class="fact"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span>${rule && T[rule] ? `<span class="to"><span class="arrow">→</span> ${esc(RULE[rule])} <span class="st ${T[rule].status}">${UX.STATUS[T[rule].status]}</span></span>` : '<span class="to faint">not used: namesake</span>'}</div>`).join("") : '<span class="faint">Nothing that reached a rule: read for context only.</span>') +
+    `<h3 style="margin-top:8px">Decision</h3><div>${UX.pill(h.decision)} <span class="mono faint">${h.code}</span></div><div class="muted" style="font-size:13px">${esc(h.reason)}</div>` +
+    (srch.length ? `<h3 style="margin-top:8px">Search results screened (${srch.filter(s => s.used).length} kept of ${srch.length})</h3>
+      <div class="faint" style="font-size:12px">Kept only if it says “${esc(h.hit.listing_phrase)}” and names a country tied to the hit.</div>
+      <table class="sr"><tr><th>ID</th><th>Role</th><th>Country</th><th>Born</th></tr>${srch.map(s => `<tr><td>${chip(s.id, h.evidence.includes(s.id))}</td><td class="${s.listing_ok ? "ok" : "no"}">${s.listing_ok ? "✓" : "✕"}</td><td class="${s.country_ok ? "ok" : "no"}">${s.country_ok ? "✓" : "✕"} <span class="faint">${s.countries.join(",")}</span></td><td class="mono">${s.years.join("/")}</td></tr>`).join("")}</table>` : "");
+}
+document.getElementById("src").onclick = e => { const s = e.target.closest(".s"); if (s) { sel = s.dataset.s; render(UX.current()); } };
+onHit(render);
+</script>
+</body>
+</html>
