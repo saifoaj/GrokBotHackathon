@@ -167,37 +167,61 @@ class People:
     def record_names(self, c):
         return [n for n in (c.get("full_name"), c.get("preferred_name"), c.get("login_name")) if n]
 
-    def fits(self, c, screened, use_place=True):
-        """Does a customer record fit the screened details (policy principle 2)?"""
+    def fit_checks(self, c, screened, use_place=True):
+        """Each screened-detail filter for one record: [(filter, passed, detail)].
+
+        passed is True, False, or None when the filter is skipped (a side is blank).
+        The record fits only when no filter is False.
+        """
         company = not is_person(screened.get("entity_type"))
-        if screened.get("entity_type") and c.get("entity_type") and \
-                is_person(c.get("entity_type")) != is_person(screened.get("entity_type")):
-            return False
+        out = []
+        st, ct = screened.get("entity_type"), c.get("entity_type")
+        if st and ct:
+            out.append(("type", is_person(ct) == is_person(st), "record %s, screened %s" % (ct, st)))
+        else:
+            out.append(("type", None, "blank"))
         sd = parse_date(screened.get("dob"))
         cd = self._dob.get(c["record_id"])
-        if sd and cd and not dates_compatible(sd, cd):
-            return False
+        if sd and cd:
+            out.append(("dob", dates_compatible(sd, cd), "record %s, screened %s" % (c.get("dob"), screened.get("dob"))))
+        else:
+            out.append(("dob", None, "record %s, screened %s" % (c.get("dob"), screened.get("dob"))))
         if use_place:
             sc = countries.canon(screened.get("country"))
+            mine = sorted({x for x in (countries.canon(c.get("residence_country")),
+                                       countries.canon(c.get("nationality"))) if x})
             if sc:
-                mine = {countries.canon(c.get("residence_country")), countries.canon(c.get("nationality"))}
-                if sc not in mine:
-                    return False
+                out.append(("country", sc in mine, "record %s, screened %s" % (", ".join(mine) or "-", sc)))
+            else:
+                out.append(("country", None, "screened country blank"))
             city = low(screened.get("city"))
+            hay = " ".join(x for x in (low(c.get("city")), low(c.get("address"))) if x)
             if city:
-                hay = " ".join(x for x in (low(c.get("city")), low(c.get("address"))) if x)
-                if city not in hay:
-                    return False
-        if not screened.get("name"):
-            return True
-        return self.rules.any_agree([screened["name"]], self.record_names(c), company) is not None
+                out.append(("city", city in hay, "record '%s', screened '%s'" % (hay, city)))
+            else:
+                out.append(("city", None, "screened city blank"))
+        if screened.get("name"):
+            pair = self.rules.any_agree([screened["name"]], self.record_names(c), company)
+            out.append(("name", pair is not None, "record names %s, screened '%s'" %
+                        (" / ".join(self.record_names(c)), screened["name"])))
+        else:
+            out.append(("name", None, "screened name blank"))
+        return out
 
-    def search(self, screened):
+    def fits(self, c, screened, use_place=True):
+        """Does a customer record fit the screened details (policy principle 2)?"""
+        return all(ok is not False for _, ok, _ in self.fit_checks(c, screened, use_place))
+
+    def search_candidates(self, screened):
+        """Records sharing a name key with the screened name (before the filters)."""
         company = not is_person(screened.get("entity_type"))
         ids = set()
         for key in self._name_keys(screened.get("name"), company):
             ids.update(self.index.get(key, ()))
-        return sorted(cid for cid in ids if self.fits(self.data.customer[cid], screened))
+        return sorted(ids)
+
+    def search(self, screened):
+        return [cid for cid in self.search_candidates(screened) if self.fits(self.data.customer[cid], screened)]
 
     # ----------------------------------------------------------- resolution
 

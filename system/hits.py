@@ -144,6 +144,40 @@ def search_keys(name):
     return out
 
 
+def search_checks(hit, data, tied_countries):
+    """Every search result under the hit's name keys, judged: [(key, [(result, accepted, why, years)])].
+
+    A result is about the hit only if it uses the listing phrase for the hit's category and
+    names a country tied to the hit; it gives birth years only if it states an age at a date.
+    """
+    phrase = listing_phrase(hit)
+    tied = set(tied_countries)
+    out = []
+    for key in search_keys(hit.get("name")):
+        checks = []
+        for s in data.search_by_query.get(key, []):
+            snippet = s.get("snippet") or ""
+            if phrase not in snippet.lower():
+                checks.append((s, False, "no listing phrase '%s' (a namesake)" % phrase, None))
+                continue
+            stripped = snippet
+            for w in key.split():
+                stripped = re.sub(r"(?i)\b%s\b" % re.escape(w), " ", strip_accents(stripped))
+            named = countries.find_in_text(stripped)
+            if not tied & set(named):
+                checks.append((s, False, "country %s not tied to the hit (%s)" %
+                               (", ".join(named) or "none", ", ".join(sorted(tied))), None))
+                continue
+            years = snippet_age_years(snippet, key.split())
+            if not years:
+                checks.append((s, False, "about the hit, but no age at a date", None))
+                continue
+            checks.append((s, True, "listing phrase and country %s match; birth years %s" %
+                           (", ".join(sorted(tied & set(named))), " or ".join(str(y) for y in years)), years))
+        out.append((key, checks))
+    return out
+
+
 def picture(hit, data):
     pic = {"id": hit["hit_id"], "is_person": is_person(hit.get("entity_type")), "names": hit_names(hit),
            "name": hit.get("name") or "", "countries": hit_countries(hit), "dates": [], "dob_origin": None,
@@ -168,20 +202,9 @@ def picture(hit, data):
             pic["dates"] = [(y, None, None) for y in years]
             pic["dob_origin"] = "profile"
     if not pic["dates"] and pic["is_person"] and pic["countries"]:
-        phrase = listing_phrase(hit)
-        tied = set(pic["countries"])
-        for key in search_keys(hit.get("name")):
-            for s in data.search_by_query.get(key, []):
-                snippet = s.get("snippet") or ""
-                if phrase not in snippet.lower():
-                    continue
-                stripped = snippet
-                for w in key.split():
-                    stripped = re.sub(r"(?i)\b%s\b" % re.escape(w), " ", strip_accents(stripped))
-                if not tied & set(countries.find_in_text(stripped)):
-                    continue
-                years = snippet_age_years(snippet, key.split())
-                if years:
+        for key, checks in search_checks(hit, data, pic["countries"]):
+            for s, accepted, why, years in checks:
+                if accepted:
                     for y in years:
                         if (y, None, None) not in pic["dates"]:
                             pic["dates"].append((y, None, None))
