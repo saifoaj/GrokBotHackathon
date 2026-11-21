@@ -309,6 +309,23 @@
       color: var(--muted);
     }
 
+    .it .q {
+      font: 600 10.5px var(--mono);
+      font-style: normal;
+    }
+
+    .it .q.DIFFERENT_ENTITY {
+      color: var(--teal);
+    }
+
+    .it .q.SAME_ENTITY {
+      color: var(--red);
+    }
+
+    .it .q.REVIEW {
+      color: var(--amber);
+    }
+
     .it.sel {
       background: var(--mint);
     }
@@ -368,10 +385,22 @@
     /* header */
     .head {
       display: grid;
-      grid-template-columns: 1fr 156px 1fr;
+      grid-template-columns: 1fr minmax(156px, auto) 1fr;
       gap: 20px;
       align-items: center;
       padding: 26px 32px;
+    }
+
+    /* the decision and reason code, readable at a glance under the ring */
+    .verdict {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .verdict .chip {
+      margin-top: 4px;
     }
 
     .head .c {
@@ -1225,7 +1254,6 @@
       DOB_MISMATCH: "date of birth", LOCATION_MISMATCH: "location", NAME_MISMATCH_VERIFIED: "verified name", ENTITY_TYPE_MISMATCH: "person vs company", DECEASED: "deceased",
       INSUFFICIENT_DATA: "insufficient data", AMBIGUOUS_CUSTOMER_RECORD: "ambiguous record"
     };
-    const STATUS_LINE = { SAME_ENTITY: "Same entity", DIFFERENT_ENTITY: "Different entity", INSUFFICIENT_DATA: "Insufficient data", AMBIGUOUS_CUSTOMER_RECORD: "Ambiguous customer record" };
     const TEST_NAME = {
       ENTITY_TYPE_MISMATCH: "Type", DECEASED: "Time · date of death", TEMPORAL_IMPOSSIBILITY: "Time · earliest dated report", DOB_MISMATCH: "Date of birth",
       LOCATION_MISMATCH: "Location", NAME_MISMATCH_VERIFIED: "Name (verified)"
@@ -1237,7 +1265,8 @@
     let openAcc = store.get("sr-open", { cust: false, hit: false, tests: false, label: false });
     let scope = "ALL", q = "";
     const current = () => BY[decodeURIComponent(location.hash.slice(1))] || BY["H-0181BD"] || HITS[0];
-    const statusLine = h => CALL_LINE[calls[h.hit_id]?.v] || STATUS_LINE[h.decision === "REVIEW" ? h.code : h.decision];
+    /* queue line: the reason code in its decision's colour, then the analyst's call if there is one */
+    const queueLine = h => `<i class="q ${h.decision}" title="${esc(h.decision)}">${esc(h.code)}</i>${CALL_LINE[calls[h.hit_id]?.v] ? " · " + CALL_LINE[calls[h.hit_id].v] : ""}`;
 
     /* ---------------- queue: rebuilt only when the filter changes; selection just moves ---------------- */
     const SEGS = [["REVIEW", "Review"], ["ALL", "All"], ["DIFFERENT_ENTITY", "Different"], ["SAME_ENTITY", "Same"]];
@@ -1251,7 +1280,7 @@
       $("seg").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.s === scope); b.setAttribute("aria-selected", b.dataset.s === scope); });
       $("count").textContent = `${list.length} hits`;
       $("items").innerHTML = list.map(h => `<div class="it ${h.hit_id === cur ? "sel" : ""}" data-h="${h.hit_id}"><b>${esc(title(h.alert.customer.name || h.hit.name))}</b>
-    <span>${esc(statusLine(h))}</span></div>`).join("") || '<div class="empty">No hits match.</div>';
+    <span>${queueLine(h)}</span></div>`).join("") || '<div class="empty">No hits match.</div>';
       $("items").scrollTop = 0;
       revealSelected(false);
     }
@@ -1350,7 +1379,8 @@
       return `
   <div class="card head">
     <div class="c"><div class="caps">Customer</div><h1>${esc(title(custName))}</h1><div class="sub">${esc(h.record || "no record")} · screened ${esc(h.alert.screened_at)}</div></div>
-    <div class="ring ${h.decision}" title="${esc(DECISION_MEANING[h.decision])}"><b>${RING[h.decision]}</b><span>${RING_SUB[h.code]}</span></div>
+    <div class="verdict"><div class="ring ${h.decision}" title="${esc(DECISION_MEANING[h.decision])}"><b>${RING[h.decision]}</b><span>${RING_SUB[h.code]}</span></div>
+      <span class="chip ${h.decision}" title="${esc(DECISION_MEANING[h.decision])}">${h.decision}</span><span class="rc" title="${esc(USE_WHEN[h.code])}">${esc(h.code)}</span></div>
     <div><div class="caps">Watchlist hit</div><h1>${esc(h.hit.name)}</h1><div class="sub">${esc(h.hit_id)} · ${esc(h.hit.listing)}</div></div>
   </div>
   <div class="card cmp">
@@ -1417,7 +1447,7 @@
     function setCall(v) {
       const h = current(); calls[h.hit_id] = { ...(calls[h.hit_id] || {}), v: calls[h.hit_id]?.v === v ? undefined : v }; store.set("sr-calls", calls);
       $("btns").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === calls[h.hit_id].v));
-      const it = $("items").querySelector(`[data-h="${h.hit_id}"] span`); if (it) it.textContent = statusLine(h);
+      const it = $("items").querySelector(`[data-h="${h.hit_id}"] span`); if (it) it.innerHTML = queueLine(h);
     }
 
     /* drawers: raw records and the reason-code reference */
