@@ -37,13 +37,29 @@ def is_person(entity_type):
 
 # ------------------------------------------------------------------ KYC notes
 
-_TITLE_WORD = r"[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’\-]+"
+_TITLE_WORD = r"[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’\-]+(?:-[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’]+)*"  # Lefèvre-Dubois
 _TITLE_RUN = r"(%s(?:\s+%s){1,3})" % (_TITLE_WORD, _TITLE_WORD)
 # Where a provider note puts the holder's name when it is not written in capitals.
 _TITLE_CUES = [
     re.compile(r"^\s*" + _TITLE_RUN + r"['’]s\b"),                      # "Greta Lindholm's passport ..."
     re.compile(r"\b(?:for|of|holder:?|name:?|named|customer|applicant)\s+" + _TITLE_RUN + r"(?=[\s,.;:(]|['’]s\b|$)"),
     re.compile(r"^\s*" + _TITLE_RUN + r"\s+(?:\(|was|has|passed|successfully|cleared|completed|confirmed)\b"),
+    # The words before the name: "...matches Jan Martin", "belonging to Sofia Weber", "on document: Ana Ruiz".
+    re.compile(r"(?i:\b(?:belonging to|document:|matches|shows|identifying the holder as|holder as|verified|"
+               r"validated|cleared|confirmed|authenticated|approved|processed|checked|identity of|by|that|vetted|"
+               r"screened)\s+)" +
+               _TITLE_RUN +
+               r"(?=[\s,.;:(]|['’]s\b|$)"),
+    # The words after the name: "Jan Martin, born ...", "Ana Ruiz (DOB ...)", "Ana Ruiz provided a ...",
+    # "Ana Ruiz. Date of birth ...".
+    re.compile(r"(?<![\w'’-])" + _TITLE_RUN + r"(?=\s*,\s*(?i:born|dob|d\.o\.b|date of birth|birth date|who|whose|"
+               r"with)\b|\s*\(|\s+(?i:provided|submitted|underwent|had|has|was|is|passed|successfully|cleared|"
+               r"completed|confirmed|verified|validated|presented|showed|used|identity|holds|holding|from|with|on)\b|"
+               r"['’]s\s+(?i:passport|driving|national|identity|id|document|licence|license)\b|"
+               r"\.\s+(?i:date of birth|dob|born)\b)"),
+    # Last resort, only when no cue above finds a name: the first run of two or more capitalised
+    # words once provider, document, month and country words are trimmed away.
+    re.compile(r"(?<![\w'’-])" + _TITLE_RUN),
 ]
 _NOT_NAME = {"identity", "check", "verification", "verified", "passport", "national", "driving", "licence",
              "license", "document", "documents", "date", "birth", "onboarding", "analyst", "kyc", "refresh",
@@ -56,15 +72,48 @@ _MONTH_WORDS = {"january", "february", "march", "april", "may", "june", "july", 
 
 def title_case_name(text):
     """A holder name written in normal capitals, found only next to a name cue. Returns (name, span)."""
+    def not_name(w):
+        return (w.lower().strip("'’") in _NOT_NAME or w.lower() in _MONTH_WORDS or
+                bool(countries.canon(w) and countries.known(countries.canon(w))))
+
     for cue in _TITLE_CUES:
         for m in cue.finditer(text):
             words = m.group(1).split()
-            if any(w.lower().strip("'’") in _NOT_NAME or w.lower() in _MONTH_WORDS for w in words):
-                continue
-            if any(countries.canon(w) and countries.known(countries.canon(w)) for w in words):
-                continue
-            return " ".join(words), m.span(1)
+            for i, w in enumerate(words):  # "Giulia Novak's France licence": the name ends at the possessive
+                if re.search(r"['’]s$", w):
+                    words = words[:i] + [w[:-2]]
+                    break
+            start = m.start(1)
+            while words and not_name(words[0]):   # "Customer Jack Cooper had ..." -> "Jack Cooper"
+                start += len(words[0]) + len(text[start + len(words[0]):]) - len(text[start + len(words[0]):].lstrip())
+                words = words[1:]
+            if len(words) < 2 or any(not_name(w) for w in words) or not_name(" ".join(words)):
+                continue  # not_name of the whole run catches "United Kingdom"
+            name = " ".join(words)
+            at = text.find(words[0], start)
+            return name, (at, text.find(words[-1], at) + len(words[-1]))
     return None
+
+
+BIRTH = re.compile(r"\b(?:date of birth|birth ?date|born|d\.?o\.?b\.?)(?![a-z])", re.I)
+
+
+def birth_date_in(text, created=None):
+    """The date attached to a birth word: right after it (within 30 characters) or right
+    before it ("lists 06/01/1998 as her DOB", within 20); the nearest wins. None if no birth
+    word has a date next to it, so a note that also gives issue and expiry dates is still read.
+    """
+    dates = [(s, e, v) for s, e, v in find_dates(text, years=True) if v != created]
+    best = None
+    for m in BIRTH.finditer(text):
+        for s, e, value in dates:
+            gap = s - m.end() if s >= m.end() else (m.start() - e if e <= m.start() else None)
+            if gap is None or gap > (30 if s >= m.end() else 20):
+                continue
+            key = (gap, s < m.end(), s)
+            if best is None or key < best[0]:
+                best = (key, value)
+    return best[1] if best else None
 
 
 def parse_kyc_note(note):
@@ -101,17 +150,17 @@ def parse_kyc_note(note):
         if title:
             name, span = title
             rest = text[:span[0]] + " " + text[span[1]:]
-    dob = None
+    dob = birth_date_in(rest, created)
     candidates = []
-    for s, e, value in find_dates(rest):
+    for s, e, value in ([] if dob else find_dates(rest)):
         if created and value == created:
             continue
         candidates.append(value)
     candidates = sorted(set(candidates))
-    if not candidates:  # a birth year alone ("DOB 1966")
+    if not candidates and not dob:  # a birth year alone ("DOB 1966")
         candidates = sorted({v for s, e, v in find_dates(rest, years=True)
                              if v[1] is None and not (created and v[0] == created[0] and False)})
-    if len(candidates) == 1:
+    if not dob and len(candidates) == 1:
         dob = candidates[0]
     found = countries.find_in_text(rest)
     country = found[0] if len(found) == 1 else None
@@ -348,7 +397,7 @@ class People:
                     continue
                 facts.append({"id": n["note_id"], "date": parsed.get("date"), "name": parsed.get("name"),
                               "dob": parsed.get("dob"), "country": parsed.get("country"),
-                              "countries": parsed.get("countries") or []})
+                              "countries": parsed.get("countries") or [], "note": True})
         facts.sort(key=lambda f: (f["date"] or (0, 0, 0), f["id"]), reverse=True)
         return facts
 
@@ -379,6 +428,8 @@ class People:
         latest = facts[0] if facts else None
         pic["latest_check"] = latest["id"] if latest else None
         # verified fields: newest approved check that gives each field
+        pic["dob_unread_src"] = None
+        pic["name_unread_src"] = None
         for field in ("name", "dob", "country"):
             pic["verified_" + field] = None
             pic["verified_%s_src" % field] = None
@@ -387,9 +438,23 @@ class People:
                     pic["verified_" + field] = f[field]
                     pic["verified_%s_src" % field] = f["id"]
                     break
+                if field == "name":
+                    # The legal name comes only from the newest check. If no name could be read from
+                    # it, the verified name is unknown: no older check or record name stands in, so
+                    # NAME_MISMATCH_VERIFIED fires only on a name actually read from the newest check.
+                    pic["name_unread_src"] = f["id"]
+                    break
+                if field == "dob" and f.get("note"):
+                    # A provider row may simply not record a date of birth, so an older check can
+                    # give it. But a note is a check whose date of birth we could not read from the
+                    # text: it is unknown, not absent, so no older or declared date stands in for it.
+                    pic["dob_unread_src"] = f["id"]
+                    break
         # dates of birth: verified wins; otherwise every declared one (all must be used)
         if pic["verified_dob"]:
             pic["dobs"] = [(pic["verified_dob"], [pic["verified_dob_src"]])]
+        elif pic["dob_unread_src"]:
+            pic["dobs"] = []
         else:
             declared = {}
             for c in records:
@@ -414,6 +479,9 @@ class People:
         if pic["verified_name"]:
             pic["names"] = [pic["verified_name"]]
             pic["names_src"] = [pic["verified_name_src"]]
+        elif pic["name_unread_src"]:
+            pic["names"] = []
+            pic["names_src"] = [pic["name_unread_src"]]
         else:
             names = []
             for c in records:
