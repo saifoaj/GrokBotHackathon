@@ -1,0 +1,10 @@
+$ tools/shuffle5.sh dev
+data: dev
+system: ./system
+run 0  original  system/run         3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2
+run 1  shuffled  PYTHONHASHSEED=1  3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2  ok
+run 2  shuffled  PYTHONHASHSEED=42  3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2  ok
+run 3  shuffled  PYTHONHASHSEED=777  3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2  ok
+run 4  shuffled  PYTHONHASHSEED=2024  3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2  ok
+run 5  shuffled  PYTHONHASHSEED=31337  3ea41dc49a427c444e839353bc3ae7e81a13911ef58a9a5fff3fd49eb7e102f2  ok
+PASS: all 6 outputs are identical
