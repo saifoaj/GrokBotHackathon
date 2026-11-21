@@ -37,13 +37,29 @@ def is_person(entity_type):
 
 # ------------------------------------------------------------------ KYC notes
 
-_TITLE_WORD = r"[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’\-]+"
+_TITLE_WORD = r"[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’\-]+(?:-[A-ZÀ-ÖØ-ÞĀ-Ž][a-zß-öø-ÿā-ž'’]+)*"  # Lefèvre-Dubois
 _TITLE_RUN = r"(%s(?:\s+%s){1,3})" % (_TITLE_WORD, _TITLE_WORD)
 # Where a provider note puts the holder's name when it is not written in capitals.
 _TITLE_CUES = [
     re.compile(r"^\s*" + _TITLE_RUN + r"['’]s\b"),                      # "Greta Lindholm's passport ..."
     re.compile(r"\b(?:for|of|holder:?|name:?|named|customer|applicant)\s+" + _TITLE_RUN + r"(?=[\s,.;:(]|['’]s\b|$)"),
     re.compile(r"^\s*" + _TITLE_RUN + r"\s+(?:\(|was|has|passed|successfully|cleared|completed|confirmed)\b"),
+    # The words before the name: "...matches Jan Martin", "belonging to Sofia Weber", "on document: Ana Ruiz".
+    re.compile(r"(?i:\b(?:belonging to|document:|matches|shows|identifying the holder as|holder as|verified|"
+               r"validated|cleared|confirmed|authenticated|approved|processed|checked|identity of|by|that|vetted|"
+               r"screened)\s+)" +
+               _TITLE_RUN +
+               r"(?=[\s,.;:(]|['’]s\b|$)"),
+    # The words after the name: "Jan Martin, born ...", "Ana Ruiz (DOB ...)", "Ana Ruiz provided a ...",
+    # "Ana Ruiz. Date of birth ...".
+    re.compile(r"(?<![\w'’-])" + _TITLE_RUN + r"(?=\s*,\s*(?i:born|dob|d\.o\.b|date of birth|birth date|who|whose|"
+               r"with)\b|\s*\(|\s+(?i:provided|submitted|underwent|had|has|was|is|passed|successfully|cleared|"
+               r"completed|confirmed|verified|validated|presented|showed|used|identity|holds|holding|from|with|on)\b|"
+               r"['’]s\s+(?i:passport|driving|national|identity|id|document|licence|license)\b|"
+               r"\.\s+(?i:date of birth|dob|born)\b)"),
+    # Last resort, only when no cue above finds a name: the first run of two or more capitalised
+    # words once provider, document, month and country words are trimmed away.
+    re.compile(r"(?<![\w'’-])" + _TITLE_RUN),
 ]
 _NOT_NAME = {"identity", "check", "verification", "verified", "passport", "national", "driving", "licence",
              "license", "document", "documents", "date", "birth", "onboarding", "analyst", "kyc", "refresh",
@@ -56,14 +72,26 @@ _MONTH_WORDS = {"january", "february", "march", "april", "may", "june", "july", 
 
 def title_case_name(text):
     """A holder name written in normal capitals, found only next to a name cue. Returns (name, span)."""
+    def not_name(w):
+        return (w.lower().strip("'’") in _NOT_NAME or w.lower() in _MONTH_WORDS or
+                bool(countries.canon(w) and countries.known(countries.canon(w))))
+
     for cue in _TITLE_CUES:
         for m in cue.finditer(text):
             words = m.group(1).split()
-            if any(w.lower().strip("'’") in _NOT_NAME or w.lower() in _MONTH_WORDS for w in words):
-                continue
-            if any(countries.canon(w) and countries.known(countries.canon(w)) for w in words):
-                continue
-            return " ".join(words), m.span(1)
+            for i, w in enumerate(words):  # "Giulia Novak's France licence": the name ends at the possessive
+                if re.search(r"['’]s$", w):
+                    words = words[:i] + [w[:-2]]
+                    break
+            start = m.start(1)
+            while words and not_name(words[0]):   # "Customer Jack Cooper had ..." -> "Jack Cooper"
+                start += len(words[0]) + len(text[start + len(words[0]):]) - len(text[start + len(words[0]):].lstrip())
+                words = words[1:]
+            if len(words) < 2 or any(not_name(w) for w in words) or not_name(" ".join(words)):
+                continue  # not_name of the whole run catches "United Kingdom"
+            name = " ".join(words)
+            at = text.find(words[0], start)
+            return name, (at, text.find(words[-1], at) + len(words[-1]))
     return None
 
 
