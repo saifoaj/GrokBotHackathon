@@ -401,6 +401,7 @@ class People:
         pic["latest_check"] = latest["id"] if latest else None
         # verified fields: newest approved check that gives each field
         pic["dob_unread_src"] = None
+        pic["name_unread_src"] = None
         for field in ("name", "dob", "country"):
             pic["verified_" + field] = None
             pic["verified_%s_src" % field] = None
@@ -408,6 +409,12 @@ class People:
                 if f.get(field):
                     pic["verified_" + field] = f[field]
                     pic["verified_%s_src" % field] = f["id"]
+                    break
+                if field == "name":
+                    # The legal name comes only from the newest check. If no name could be read from
+                    # it, the verified name is unknown: no older check or record name stands in, so
+                    # NAME_MISMATCH_VERIFIED fires only on a name actually read from the newest check.
+                    pic["name_unread_src"] = f["id"]
                     break
                 if field == "dob" and f.get("note"):
                     # A provider row may simply not record a date of birth, so an older check can
@@ -444,6 +451,9 @@ class People:
         if pic["verified_name"]:
             pic["names"] = [pic["verified_name"]]
             pic["names_src"] = [pic["verified_name_src"]]
+        elif pic["name_unread_src"]:
+            pic["names"] = []
+            pic["names_src"] = [pic["name_unread_src"]]
         else:
             names = []
             for c in records:
