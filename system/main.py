@@ -62,7 +62,7 @@ def decide_hit(hit, alert, routes, screened, pics, rules, trace):
             sentences.append("The hit %s is therefore treated as the customer." % h["name"])
         return {"decision": r["decision"], "reason_code": r["codes"][0], "customer_record_id": p["anchor"],
                 "evidence": r["evidence"], "reason": limit_sentences(sentences)}
-    every = sorted({e for r in results for e in r["evidence"]})
+    every = sorted({e for r in results for e in r["evidence"]} | {c for p in pics for c in p["records"]})
     people_txt = "; ".join(",".join(p["records"]) for p in pics)
     if len(decisions) == 1:
         r = results[0]

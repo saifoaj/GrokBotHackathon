@@ -51,6 +51,14 @@ def hit_dob_phrase(h):
     return "the hit's listed %s is %s" % (word, years_text(h["dates"]))
 
 
+def hit_dob_short(h):
+    where = {"profile": "from its profile notes", "profile_date": "from its profile notes",
+             "search": "from search results %s" % ", ".join(h["sr"]), "listed": "as listed"}.get(h["dob_origin"], "")
+    if all(d[1] is None for d in h["dates"]):
+        return "the hit's birth year %s %s" % (years_text(h["dates"]), where)
+    return "the hit's date of birth %s %s" % (years_text(h["dates"]), where)
+
+
 def compare(pic, h, rules, screened_at):
     """Return dict(decision, codes, evidence, sentences, ...) for one person and one hit."""
     company = not pic["is_person"]
@@ -82,14 +90,15 @@ def compare(pic, h, rules, screened_at):
                 age = rep.year - c[0]
                 fired["TEMPORAL_IMPOSSIBILITY"] = (
                     sources_dob,
-                    "The customer was born in %s (%s), so they were at most %d when the hit's profile reports "
-                    "activity on %s." % (fmt_date(c) if len(pic["dobs"]) == 1 else c[0],
+                    "The customer was born %s (%s), so they were at most %d when the hit's profile reports "
+                    "activity on %s." % (("on " if c[2] else "in ") + fmt_date(c) if len(pic["dobs"]) == 1
+                                         else "in %d" % c[0],
                                          ", ".join(sources_dob), max(age, 0), fmt_date(h["report"])))
         elif company and not h["is_person"]:
             if all(earliest(c) > latest(h["report"]) for c, _ in pic["dobs"]):
                 fired["TEMPORAL_IMPOSSIBILITY"] = (
                     sources_dob,
-                    "The customer was incorporated on %s (%s), after the hit's profile reports activity on %s." %
+                    "The customer was incorporated in %s (%s), after the hit's profile reports activity on %s." %
                     (fmt_date(pic["dobs"][0][0]), ", ".join(sources_dob), fmt_date(h["report"])))
 
     # ---- date of birth
@@ -146,8 +155,7 @@ def compare(pic, h, rules, screened_at):
     if dob_agree and pic["dobs"]:
         c = pic["dobs"][0][0]
         facts.append("The customer's date of birth %s (%s) agrees with %s." %
-                     (fmt_date(c), ", ".join(sources_dob), hit_dob_phrase(h).replace("the hit's listed date of birth is ",
-                                                                                   "the hit's ")))
+                     (fmt_date(c), ", ".join(sources_dob), hit_dob_short(h)))
     if shared:
         facts.append("Both the customer and the hit are linked to %s." % ", ".join(shared))
     if name_match:
