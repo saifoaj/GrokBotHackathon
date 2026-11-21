@@ -185,7 +185,7 @@ class HitReader(object):
         if company:
             return
 
-        paragraph = extract.first_paragraph(hit.get("profile_notes"))
+        paragraph = extract.first_paragraph(extract.tidy(hit.get("profile_notes")))
         status, value = extract.anchored_dob(paragraph, order_text)
         if status == "anchored":
             facts.dobs.append(HitDob((value[0],), value[1], value[2], facts.hit_id, "profile_dob",
@@ -217,7 +217,7 @@ class HitReader(object):
         tied = set(facts.countries)
         unparsed_search = []
         for row in results:
-            snippet = row.get("snippet") or ""
+            snippet = extract.tidy(row.get("snippet") or "")
             if phrase not in simple_text(snippet):
                 continue
             if not tied & set(countries.find_in_text(snippet)):

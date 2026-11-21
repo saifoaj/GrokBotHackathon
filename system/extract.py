@@ -10,6 +10,27 @@ import re
 import dates
 from names import simple_text
 
+# ---------------------------------------------------------------- tidying
+
+def tidy(text):
+    """Surface noise out of free text before any pattern runs.
+
+    Collapses spaces and tabs, removes spaces before closing punctuation and
+    after opening brackets, squeezes repeated punctuation ("1986 ,  was" ->
+    "1986, was"; "2024-03-16 .." -> "2024-03-16."). Line breaks are kept,
+    since paragraphs and record-style lines depend on them.
+    """
+    if not isinstance(text, str):
+        return ""
+    text = text.replace("\t", " ").replace(" ", " ").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r" {2,}", " ", text)
+    text = re.sub(r" +([,.;:!?)\]])", r"\1", text)
+    text = re.sub(r"([(\[]) +", r"\1", text)
+    text = re.sub(r"([,;:!?])\1+", r"\1", text)
+    text = re.sub(r"\.{2}(?!\.)", ".", text)
+    return "\n".join(line.strip() for line in text.split("\n")).strip()
+
+
 # ---------------------------------------------------------------- birth dates
 
 DOB_KEY = re.compile(r"(?<![a-z])(date of birth|birth[\s\-]?date|d\.?\s?o\.?\s?b|born|birth\w*)(?![a-z])", re.I)
@@ -280,7 +301,7 @@ def dated_reports(profile_notes):
         return []
     reports = []
     for number, line in enumerate(profile_notes.splitlines(), 1):
-        match = _REPORT_LINE.match(line)
+        match = _REPORT_LINE.match(tidy(line))
         if match:
             value = dates.make(match.group(4), _MONTH_NUMBER[match.group(2)], match.group(3))
             if value is not None:

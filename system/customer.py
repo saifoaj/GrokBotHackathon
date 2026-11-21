@@ -57,6 +57,23 @@ _DOC_NUMBER = re.compile(
     r"\b(?:document|passport|licen[cs]e|id|card)\s+(?:number|no\.?|num\.?|#)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-]{3,})", re.I)
 _STOP_CAPS = frozenset(["DOB", "D.O.B", "ID", "KYC", "AML", "PEP", "UK", "US", "USA", "UAE", "EU",
                         "SAR", "PDF", "SMS", "OK", "IBAN", "NIN", "BVN", "SSN", "TIN"])
+# Capitalised words that are never part of a person's name in a check note.
+_NOT_NAME = frozenset(simple_text(w) for w in """
+    persona onfido veriff sumsub jumio trulioo idnow yoti shufti signicat socure experian equifax
+    lexisnexis gbg mitek incode au10tix idology regula ondato idenfy facephi onboarding
+    passport national id identity card driving driver drivers licence license residence permit
+    document documents verification verified verify check checks checked kyc dob registry extract
+    the a an on per for of in at by via with from using as result results customer client user
+    account holder subject name born date birth recorded record approved confirmed successfully
+    identity completed process team note this that it its their his her they he she on upon after
+    following documentation provided issued valid validated cleared accepted passed performed
+    successful status outcome ctry country
+""".split())
+_PARTICLES = frozenset(["de", "la", "del", "da", "dos", "das", "do", "van", "von", "der", "den", "ter",
+                        "bin", "binti", "al", "el", "di", "du", "le", "ibn", "y", "e", "st"])
+_BEFORE_NAME = frozenset(["for", "of", "holder", "name", "named", "shows", "identifying", "verified",
+                          "validated", "cleared", "approved", "confirmed", "checked", "matches",
+                          "authenticated", "processed", "is", "as"])
 
 
 def _caps_word(word):
@@ -70,15 +87,43 @@ def _caps_word(word):
     return False
 
 
-def find_caps_name(text):
-    """The run of capitalised words that names the person: (name, start, end) or None."""
+def _name_word(word, extra_stop):
+    """Capitalised (Title or CAPS) word that may be part of a person's name."""
+    if _caps_word(word):
+        key = simple_text(word)
+        return (word.strip(".") not in _STOP_CAPS and key not in extra_stop
+                and (not key or key not in _NOT_NAME))
+    first = [ch for ch in word if ch.isalpha()][:1]
+    if not first or not first[0].isupper():
+        return False
+    key = simple_text(word)
+    return bool(key) and key not in _NOT_NAME and key not in extra_stop
+
+
+def find_person_name(text, known_parts=None, extra_stop=frozenset()):
+    """The words that name the person in a check note: (name, start, end) or None.
+
+    Does not rely on capitals: builds runs of capitalised words (Title case
+    or CAPS, digit placeholders and particles such as "de" or "van" inside),
+    skipping provider, document and country words and words inside dates,
+    then ranks them:
+    written in capitals > shares a part with the customer's record names >
+    two or more parts > right after "for", "of", "verified"... or right
+    before "(", "'s" or ", born/DOB" > earlier in the text.
+    """
+    known = set(known_parts or ())
+    # Words inside a written date ("December 15, 1962") are never name words;
+    # month names elsewhere can be ("Jan Martin", "April Lewis").
+    date_spans = [(start, end) for start, end, _v in dates.find_dates(text)]
     runs = []
     current = []
 
     def close():
+        while current and current[-1][3] == "particle":
+            current.pop()
         if current:
             runs.append(list(current))
-            del current[:]
+        del current[:]
 
     for match in re.finditer(r"\S+", text):
         raw = match.group(0)
@@ -86,25 +131,41 @@ def find_caps_name(text):
         start = match.start() + len(raw) - len(word)
         if word != raw:
             close()                      # an opening bracket starts a new run
-        possessive = re.search(r"['’]s$", word)
+        possessive = re.search(r"['\u2019]s$", word)
         core = word[:possessive.start()] if possessive else word
         cleaned = core.rstrip(",.;:)\"']!?")
-        if cleaned and _caps_word(cleaned) and cleaned.strip(".") not in _STOP_CAPS:
-            current.append((cleaned, start, start + len(cleaned)))
+        in_date = any(s <= start < e for s, e in date_spans)
+        if cleaned and not in_date and _name_word(cleaned, extra_stop):
+            current.append((cleaned, start, start + len(cleaned), "word"))
             if possessive or cleaned != core:
-                close()                  # "SMITH's" or "SMITH," ends the name
+                close()                  # "SMITH's" or "Smith," ends the name
+        elif cleaned and current and cleaned in _PARTICLES and cleaned == core:
+            current.append((cleaned, start, start + len(cleaned), "particle"))
         else:
             close()
     close()
-    best = None
-    best_score = 0
+
+    best, best_key = None, None
     for run in runs:
-        score = sum(1 for word, _s, _e in run if any(ch.isalpha() for ch in word) and len(word) > 1)
-        if score > best_score:
-            best, best_score = run, score
+        words = [w for w, _s, _e, kind in run if kind == "word"]
+        alpha = [w for w in words if sum(1 for ch in w if ch.isalpha()) > 1]
+        if not alpha:
+            continue
+        joined = " ".join(w for w, _s, _e, _k in run)
+        if countries.lookup(joined) or (countries.find_in_text(joined) and len(alpha) == 1):
+            continue                     # "United States", "Nigerian"
+        caps = all(_caps_word(w) for w in words)
+        shares = any(simple_text(w) in known for w in alpha)
+        before = re.findall(r"[A-Za-z]+", text[max(0, run[0][1] - 20):run[0][1]])
+        after = text[run[-1][2]:run[-1][2] + 12]
+        anchored = (bool(before) and before[-1].lower() in _BEFORE_NAME) or bool(
+            re.match(r"\s*(\(|['\u2019]s\b|,\s*(born|dob|d\.o\.b))", after, re.I))
+        key = (caps, shares, len(alpha) >= 2, anchored, -run[0][1])
+        if best_key is None or key > best_key:
+            best, best_key = run, key
     if not best:
         return None
-    return (" ".join(word for word, _s, _e in best), best[0][1], best[-1][2])
+    return (" ".join(w for w, _s, _e, _k in best), best[0][1], best[-1][2])
 
 
 def dob_from_note(text, record_date, order=None, name_end=None):
@@ -137,18 +198,20 @@ def dob_from_note(text, record_date, order=None, name_end=None):
     return ("none", None)
 
 
-def parse_check_note(note, order=None):
+def parse_check_note(note, order=None, known_parts=None, extra_stop=frozenset()):
     """A note that records an identity check, as a Check; else None.
 
-    order is the notes' numeric date order (see dates.detect_order).
+    order is the notes' numeric date order (see dates.detect_order);
+    known_parts are the customer's record name parts and extra_stop the
+    KYC provider names seen in the data (both help find the name).
     """
-    text = note.get("text")
-    if not isinstance(text, str) or not text.strip():
+    text = extract.tidy(note.get("text"))
+    if not text:
         return None
     channel = simple_text(note.get("channel") or "")
     record_date = dates.parse_date(note.get("created_at"))
     is_check = channel == "kyc"
-    caps = find_caps_name(text)
+    caps = find_person_name(text, known_parts, extra_stop)
     how, dob = dob_from_note(text, record_date, order, caps[2] if caps else None)
     if not is_check and not (_IDENTITY.search(text) and dob is not None):
         return None
@@ -200,6 +263,7 @@ class Person(object):
         self.checks = []          # approved checks, most recent first
         self.ignored_checks = []  # rejected / expired, never evidence
         self.verified = {}        # legal_name / dob / document_country -> Fact
+        self.unreadable = {}      # field -> note ID whose text we could not read it from
         self.entity_type = None
         self.trace = []
 
@@ -244,6 +308,9 @@ class Resolver(object):
         for applicant in sorted(self._applicant_owner):
             self._applicants_by_customer.setdefault(self._applicant_owner[applicant], []).append(applicant)
         self._check_cache = {}
+        self._note_cache = {}
+        self._provider_words = frozenset(
+            word for row in data.kyc_checks for word in simple_text(row.get("provider") or "").split())
         self._records_by_document = {}
         for row in data.kyc_checks:
             check = check_from_row(row, data.date_orders["kyc"])
@@ -274,11 +341,20 @@ class Resolver(object):
     def _is_company(entity_type):
         return simple_text(entity_type or "") in ("company", "organisation", "organization", "entity")
 
+    def parse_note(self, note, record):
+        """parse_check_note with this customer's name parts and the provider words."""
+        key = (note["note_id"], record.get("record_id"))
+        if key not in self._note_cache:
+            known = set(part for _f, _v, parts in self.record_names(record) for part in parts)
+            self._note_cache[key] = parse_check_note(note, self.data.date_orders["notes"], known,
+                                                     self._provider_words)
+        return self._note_cache[key]
+
     def _note_checks(self, record):
         email = normal_email(record.get("email"))
         result = []
         for note in self.data.notes_by_email.get(email, []):
-            check = parse_check_note(note, self.data.date_orders["notes"])
+            check = self.parse_note(note, record)
             if check is not None:
                 result.append(check)
         return result
@@ -483,7 +559,7 @@ class Resolver(object):
                     facts.append(Fact(field, record[field], DECLARED, record_id, field))
             email = normal_email(record.get("email"))
             for note in self.data.notes_by_email.get(email, []):
-                if parse_check_note(note, self.data.date_orders["notes"]) is not None:
+                if self.parse_note(note, record) is not None:
                     continue
                 for country in countries.find_in_text(note.get("text")):
                     facts.append(Fact("country", country, DECLARED, note["note_id"], "lived"))
@@ -499,15 +575,27 @@ class Resolver(object):
             for country in check.countries:
                 facts.append(Fact("country", country, VERIFIED, check.check_id, "document"))
         # Most recent approved check that gives each field (checks are sorted
-        # most recent first, then lowest ID).
+        # most recent first, then lowest ID). A provider row may simply not
+        # record a field, so an older check can supply it. But when the check
+        # is a note and we could not read the field from its text, the field
+        # is unknown: never fall back to an older check or a declared value.
         for check in person.checks:
-            if check.name and "legal_name" not in person.verified:
-                person.verified["legal_name"] = Fact("legal_name", check.name, VERIFIED, check.check_id, check.kind)
-            if check.dob is not None and "dob" not in person.verified:
-                person.verified["dob"] = Fact("dob", check.dob, VERIFIED, check.check_id, check.kind)
-            if check.countries and "document_country" not in person.verified:
-                person.verified["document_country"] = Fact(
-                    "country", ", ".join(check.countries), VERIFIED, check.check_id, "document")
+            readable = {
+                "legal_name": bool(check.name),
+                "dob": check.dob is not None,
+                "document_country": bool(check.countries),
+            }
+            for field, ok in sorted(readable.items()):
+                if field in person.verified or field in person.unreadable:
+                    continue
+                if ok:
+                    value = {"legal_name": check.name, "dob": check.dob,
+                             "document_country": ", ".join(check.countries)}[field]
+                    person.verified[field] = Fact("country" if field == "document_country" else field,
+                                                  value, VERIFIED, check.check_id,
+                                                  "document" if field == "document_country" else check.kind)
+                elif check.kind == "note":
+                    person.unreadable[field] = check.check_id
         person.entity_type = sorted(types)[0] if len(types) == 1 else None
         person.facts = sorted(set(facts), key=fact_sort_key)
         return person

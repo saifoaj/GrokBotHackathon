@@ -57,8 +57,12 @@ def coverage(system):
     # KYC notes.
     order = data.date_orders["notes"]
     kyc_total, how_counts, failed = 0, {}, []
+    owners = {}
+    for record in data.customers:
+        owners[(record.get("email") or "").strip().casefold()] = record
     for note in data.notes:
-        check = customer.parse_check_note(note, order)
+        record = owners.get((note.get("requester_email") or "").strip().casefold())
+        check = system.resolver.parse_note(note, record) if record else customer.parse_check_note(note, order)
         if check is None:
             continue
         kyc_total += 1

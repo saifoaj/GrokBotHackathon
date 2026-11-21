@@ -57,7 +57,10 @@ class CustomerView(object):
 
         # Date of birth (or incorporation date): verified beats declared.
         verified_dob = person.verified.get("dob")
-        if verified_dob is not None:
+        self.unreadable = dict(person.unreadable)
+        if "dob" in person.unreadable:
+            self.dobs = []          # the newest check's DOB could not be read: unknown
+        elif verified_dob is not None:
             self.dobs = [(verified_dob.value, [verified_dob.source], "verified")]
         else:
             by_date = {}
@@ -73,6 +76,11 @@ class CustomerView(object):
         if legal is not None:
             self.verified_name = (legal.value, names.parts(legal.value, self.is_company), legal.source)
         self.declared_names = []
+        if "legal_name" in person.unreadable:
+            self.verified_name = None
+            self.name_unreadable = person.unreadable["legal_name"]
+        else:
+            self.name_unreadable = None
         for fact in person.facts:
             if fact.field == "name" and fact.level == "declared":
                 self.declared_names.append((fact.value, names.parts(fact.value, self.is_company), fact.source))
@@ -194,6 +202,8 @@ def name_result(customer, hit, rules):
     hit_names = [n for n in hit.names if n.parts]
     if not hit_names:
         return (UNKNOWN, None, None, [], False)
+    if customer.name_unreadable:
+        return (UNKNOWN, None, None, [customer.name_unreadable], True)
     if customer.verified_name is not None:
         value, parts, source = customer.verified_name
         if not customer.is_company and len(parts) < 2:
@@ -347,6 +357,11 @@ def decide_for_person(person, customer, hit, alert, rules):
             if not hit.dobs:
                 missing.append("the date of birth cannot be compared with it because the hit gives none")
                 settle.append("a date of birth for the listed person")
+            elif "dob" in customer.unreadable:
+                missing.append("the date of birth in the customer's latest identity check %s could not be read"
+                               % customer.unreadable["dob"])
+                settle.append("the date of birth from that identity check")
+                agree_evidence += [customer.unreadable["dob"]]
             else:
                 missing.append("the customer has no date of birth on file to compare")
                 settle.append("a verified date of birth for the customer")
@@ -361,7 +376,12 @@ def decide_for_person(person, customer, hit, alert, rules):
                                customer.dob_text(), join(h.text for h in hit.dobs), join(search_ids)))
             settle.append("a stated date of birth or age for the listed person")
             agree_evidence += customer.dob_sources() + search_ids
-        if name_status == UNKNOWN and customer.verified_name is not None:
+        if name_status == UNKNOWN and customer.name_unreadable:
+            missing.append("the name in the customer's latest identity check %s could not be read"
+                           % customer.name_unreadable)
+            settle.append("the verified legal name from that identity check")
+            agree_evidence += [customer.name_unreadable]
+        elif name_status == UNKNOWN and customer.verified_name is not None:
             missing.append("the customer's verified name %s has fewer than two real name parts" % cust_name)
             settle.append("the customer's full verified legal name")
             agree_evidence += name_sources
