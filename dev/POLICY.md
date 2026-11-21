@@ -1,8 +1,8 @@
-Screening alert review: identity SOP
+# Screening alert review: identity SOP
 
 You review name screening alerts for a payments company. Screening compares each customer with sanctions, PEP, enforcement and adverse media lists and raises an alert when a name looks similar. Each alert has one or more **hits**: list profiles that might be the customer. For every hit, decide whether it is the customer.
 
-Decisions
+## Decisions
 
 | Decision | Meaning |
 |---|---|
@@ -12,7 +12,7 @@ Decisions
 
 An alert is cleared only when every hit in it is `DIFFERENT_ENTITY`. Clearing a hit that is the customer is the worst mistake; when in doubt, `REVIEW`.
 
-Principles
+## Principles
 
 1. **Identity, not policy.** Decide whether the hit is the customer. How serious the listing is, or whether the customer would still be acceptable, does not matter here.
 
@@ -25,11 +25,11 @@ Principles
 5. **Gather the hit's facts wherever they are.** A hit's date of birth may be its `dobs` field, a sentence in the first paragraph of its profile notes (an age at a date gives two possible birth years: someone aged 45 in March 2019 was born in 1973 or 1974), or, when neither gives one, web search results for its name. Most search results are about other people with the same name: a result is about the hit only if it describes the same kind of listing in a country tied to the hit. The kind of listing follows the hit's primary category (or its first category): Sanctions: "a sanctioned individual"; PEP: "a politically exposed person"; Enforcement: "the subject of enforcement action"; Adverse Media: "named in adverse media"; SOE: "a state-owned enterprise official"; any other category: "named on a watchlist". The countries tied to a hit are its `countries`, `nationality`, `citizenship`, `addresses` (the last part of each) and `place_of_birth`; "International" and "Europe" are not countries. Dated reports are exactly the English lines in the profile notes of the form "According to …; September 10, 2025: …"; other wordings do not count. This form and the listing phrases above are worded the same in the unseen set. Dates inside hit profiles are written as the provider wrote them. For companies, only the `dobs` field is an incorporation date.
 
 6. **Clear only on a contradiction.** A hit is a different entity only when a fact contradicts it:
-- **Time:** the customer was younger than 16 at the earliest dated report, or a company was incorporated after it; or the profile gives a date of death before the customer was screened.
-- **Date of birth:** every birth date the hit gives is contradicted: the customer's birth year is more than 1 year outside it, or both give a month in the same year and the months (or days) differ. One agreeing date is enough to prevent this.
-- **Location:** every country tied to the customer (residence and nationality on all their records, the approved identity document, and places the notes say they lived) differs from every country tied to the hit. Codes and nationalities are countries; territories count as their own country. A country difference does not clear a hit whose name and date of birth agree: that hit is `REVIEW`.
-- **Name:** the customer's verified legal name agrees with none of the hit's names or aliases (principle 8), even if the name on their record does.
-- **Type:** one is a person and the other a company.
+   - **Time:** the customer was younger than 16 at the earliest dated report, or a company was incorporated after it; or the profile gives a date of death before the customer was screened.
+   - **Date of birth:** every birth date the hit gives is contradicted: the customer's birth year is more than 1 year outside it, or both give a month in the same year and the months (or days) differ. One agreeing date is enough to prevent this.
+   - **Location:** every country tied to the customer (residence and nationality on all their records, the approved identity document, and places the notes say they lived) differs from every country tied to the hit. Codes and nationalities are countries; territories count as their own country. A country difference does not clear a hit whose name and date of birth agree: that hit is `REVIEW`.
+   - **Name:** the customer's verified legal name agrees with none of the hit's names or aliases (principle 8), even if the name on their record does.
+   - **Type:** one is a person and the other a company.
 
 7. **Confirm only on agreement.** Dates of birth agree when the customer's birth year is one of the hit's possible birth years and every part both give (month, day) is equal; a birth year alone can agree with a full date. Confirm a person when name and date of birth agree and nothing contradicts them; a company when name and country agree and nothing contradicts them. Otherwise, `REVIEW`.
 
@@ -37,7 +37,7 @@ Principles
 
 9. **Cite what you used.** Every decision names the records it relied on by their IDs, and the customer record it resolved (`null` if none was found). Cite what decided the hit, not everything you looked at.
 
-Reason codes
+## Reason codes
 
 Give the main reason with one code that belongs to the decision. When several apply, any of them is accepted.
 

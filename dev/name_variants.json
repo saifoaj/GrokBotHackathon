@@ -1,5 +1,6 @@
 {
-  "given_name_groups": [
+  "description": "Groups of given-name forms that count as the same name part (spellings, transliterations and short forms), and the company legal forms that are not name parts.",
+  "groups": [
     [
       "muhammad",
       "mohammed",
