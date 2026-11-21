@@ -44,7 +44,8 @@ def coverage(system):
         paragraph = extract.first_paragraph(hit.get("profile_notes"))
         if not paragraph:
             continue
-        ages = extract.ages_at_dates(paragraph, data.date_orders["hit_text"])
+        subject = set(part for name in system.reader.read(hit).names for part in name.parts)
+        ages = extract.ages_at_dates(paragraph, data.date_orders["hit_text"], subject_names=subject)
         parsed_total += 1 if ages else 0
         if extract.AGE_WORDS.search(paragraph):
             with_words += 1

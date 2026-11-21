@@ -8,6 +8,7 @@ unknown: it never clears a hit.
 import re
 
 import dates
+from names import simple_text
 
 # ---------------------------------------------------------------- birth dates
 
@@ -65,12 +66,21 @@ _AGE_PATTERNS = [
     re.compile(r"(?<!\d)(\d{1,3})\s+years?\s+of\s+age(?![a-z])", re.I),          # 37 years of age
     re.compile(r"(?<![a-z])age of [^.;:\n\d]{1,60}? (?:was|is|stood at|reached) (\d{1,3})(?!\d)", re.I),
     re.compile(r"[A-Z][\w'’\-\.]*,\s+(\d{1,3}),"),                             # Elena Johansson, 51,
+    # "Mark E Phillips, at 24, was ..." : comma (or "years") right after the number.
+    re.compile(r"(?:,|(?<![a-z])(?:he|she|who))\s+at\s+(\d{1,3})(?=\s*,|\s+years?(?![a-z]))", re.I),
     # "he was 46." / "she turned 52 when" : the number must end the clause.
-    re.compile(r"(?<![a-z])(?:he|she|they|who)\s+(?:was|were|is|turned|had turned)\s+(\d{1,3})"
+    re.compile(r"(?<![a-z])(?:he|she|they|who|the (?:subject|individual|person|accused|defendant|suspect))"
+               r"\s+(?:was|were|is|turned|had turned)\s+(\d{1,3})"
                r"(?=\s*(?:[.,;:!?)]|$|years?\s+old|at the time|when|and\b))", re.I),
 ]
+# "Christian Zaum was 32 when ...": anchored on the subject being one of the
+# hit's own name parts (passed in as subject_names), so "the score was 3."
+# can never become an age. Group 1 is the subject word, group 2 the age.
+_NAME_WAS = re.compile(r"(?<![\w'’\-])([^\W\d_][\w'’\-]*)\s+(?:was|were|is|turned|had turned)\s+(\d{1,3})"
+                       r"(?=\s*(?:[.,;:!?)]|$|years?\s+old|at the time|when|and\b))")
 # Any wording that looks like an age (for the coverage report).
-AGE_WORDS = re.compile(r"(?<![a-z])(aged?|age of|years? old|year-old|years of age)(?![a-z])", re.I)
+AGE_WORDS = re.compile(r"(?<![a-z])(aged?|age of|years? old|year-old|years of age|(?:was|is|turned) \d{1,3}(?![\d%]|[.,]\d)|at \d{1,3}(?=,| years?))"
+                       r"(?![a-z])", re.I)
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+(?=[A-Z])|\n")
 _AS_OF = re.compile(r"(?<![a-z])as of\s+", re.I)
 _YEAR_AFTER_PREP = re.compile(r"(?<![a-z])(?:in|during|by|since|throughout)\s+(\d{4})(?!\d)", re.I)
@@ -160,7 +170,7 @@ def _lone_age(text, found_dates):
     return None
 
 
-def ages_at_dates(text, order=None, loose=False):
+def ages_at_dates(text, order=None, loose=False, subject_names=None):
     """Statements of an age at a date: list of (age, date, start).
 
     The date is the nearest one in the same sentence; for record-style
@@ -170,14 +180,18 @@ def ages_at_dates(text, order=None, loose=False):
     loose=True is for short texts about one person (search snippets): the
     date may be anywhere in the text, and when no age phrase is found a
     single unambiguous bare number is taken as the age.
+
+    subject_names: the listed person's normalised name parts; enables
+    "<one of their names> was 32 when ..." statements.
     """
     if not isinstance(text, str) or not text.strip():
         return []
     if not loose:
-        return _anchored_ages(text, order)
+        return _anchored_ages(text, order, subject_names=subject_names)
     everywhere = _all_dates(text, order)
     results = [(age, when if when is not None else _nearest(everywhere, position), position)
-               for age, when, position in _anchored_ages(text, order, keep_undated=True)]
+               for age, when, position in _anchored_ages(text, order, keep_undated=True,
+                                                         subject_names=subject_names)]
     results = [r for r in results if r[1] is not None]
     if results:
         return results
@@ -189,7 +203,7 @@ def ages_at_dates(text, order=None, loose=False):
     return []
 
 
-def _anchored_ages(text, order, keep_undated=False):
+def _anchored_ages(text, order, keep_undated=False, subject_names=None):
     spans = _sentences(text)
     as_of = None
     match = _AS_OF.search(text)
@@ -199,25 +213,27 @@ def _anchored_ages(text, order, keep_undated=False):
             as_of = after[0][2]
     results = []
     seen = set()
-    for pattern in _AGE_PATTERNS:
-        for found in pattern.finditer(text):
-            age = int(found.group(1))
-            position = found.start(1)
-            if position in seen or not 1 <= age <= 120:
-                continue
-            sentence = [(s, e) for s, e in spans if s <= position < e]
-            when = None
-            if sentence:
-                candidates = _dates_in(text, sentence[0][0], sentence[0][1], order)
-                candidates = [(min(abs(s - position), abs(e - position)), s, v) for s, e, v in candidates]
-                if candidates:
-                    when = sorted(candidates)[0][2]
-            if when is None:
-                when = as_of
-            if when is None and not keep_undated:
-                continue
-            seen.add(position)
-            results.append((age, when, position))
+    matches = [(found.start(1), int(found.group(1))) for pattern in _AGE_PATTERNS for found in pattern.finditer(text)]
+    if subject_names:
+        for found in _NAME_WAS.finditer(text):
+            if simple_text(found.group(1)) in subject_names:
+                matches.append((found.start(2), int(found.group(2))))
+    for position, age in sorted(matches):
+        if position in seen or not 1 <= age <= 120:
+            continue
+        sentence = [(s, e) for s, e in spans if s <= position < e]
+        when = None
+        if sentence:
+            candidates = _dates_in(text, sentence[0][0], sentence[0][1], order)
+            candidates = [(min(abs(s - position), abs(e - position)), s, v) for s, e, v in candidates]
+            if candidates:
+                when = sorted(candidates)[0][2]
+        if when is None:
+            when = as_of
+        if when is None and not keep_undated:
+            continue
+        seen.add(position)
+        results.append((age, when, position))
     results.sort(key=lambda item: item[2])
     return results
 

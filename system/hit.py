@@ -187,7 +187,8 @@ class HitReader(object):
         if status == "anchored":
             facts.dobs.append(HitDob((value[0],), value[1], value[2], facts.hit_id, "profile_dob",
                                      dob_text((value[0],), value[1], value[2])))
-        ages = extract.ages_at_dates(paragraph, order_text)
+        subject = set(part for name in facts.names for part in name.parts)
+        ages = extract.ages_at_dates(paragraph, order_text, subject_names=subject)
         for age, when, _position in ages:
             years = extract.birth_years_from_age(age, when)
             facts.dobs.append(HitDob(years, None, None, facts.hit_id, "profile_age", dob_text(years, None, None)))
@@ -198,6 +199,7 @@ class HitReader(object):
             return
 
         order_search = self.data.date_orders["search"]
+        subject_all = set(part for name in facts.names for part in name.parts)
         results = []
         for name in facts.names:
             if name.kind != "name":
@@ -217,7 +219,7 @@ class HitReader(object):
             if not tied & set(countries.find_in_text(snippet)):
                 continue
             facts.search_used.append(row["result_id"])
-            ages = extract.ages_at_dates(snippet, order_search, loose=True)
+            ages = extract.ages_at_dates(snippet, order_search, loose=True, subject_names=subject_all)
             if not ages:
                 unparsed_search.append(row["result_id"])
                 continue

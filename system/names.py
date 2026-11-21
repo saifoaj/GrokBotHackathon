@@ -6,8 +6,9 @@
   not parts. For companies, the legal forms in name_variants.json are not parts.
 - Two parts match when identical, listed together in name_variants.json,
   written together or apart (Abdulsalam = Abdul Salam: one part covering
-  both), or within the edit limit: 1 edit for parts of 4-6 letters, 2 for
-  longer, parts under 4 letters must be identical; the shorter part decides.
+  both; exact letters, no edits), or within the edit limit: 1 edit for parts
+  of 4-6 letters, 2 for longer, parts under 4 letters must be identical; the
+  shorter part decides.
 - Names agree when at least two parts match, or every part of the shorter
   name matches. Matching is one-to-one and the best pairing is used.
 """
@@ -150,6 +151,14 @@ class NameRules(object):
         """Index key for a name part: its variant group, or itself."""
         return self.canonical.get(token, token)
 
+    def joined_match(self, single, joined):
+        """A part written together with two adjacent parts: same letters only.
+
+        No edit allowance here: with edits, "logistics" would absorb a short
+        extra part ("st" + "logistics" is only two insertions away).
+        """
+        return single == joined or self.key(single) == self.key(joined)
+
     def parts_match(self, a, b):
         if a == b or self.key(a) == self.key(b):
             return True
@@ -187,10 +196,10 @@ class NameRules(object):
                     m, ca, cb = solve(i + 1, used | (1 << j))
                     best = max(best, (m + 1, ca + 1, cb + 1))
                 if (j + 1 < len(b) and not used & (1 << (j + 1))
-                        and self.parts_match(a[i], b[j] + b[j + 1])):   # a[i] = b[j] b[j+1]
+                        and self.joined_match(a[i], b[j] + b[j + 1])):   # a[i] = b[j] b[j+1]
                     m, ca, cb = solve(i + 1, used | (1 << j) | (1 << (j + 1)))
                     best = max(best, (m + 1, ca + 1, cb + 2))
-                if i + 1 < len(a) and self.parts_match(a[i] + a[i + 1], b[j]):  # a[i] a[i+1] = b[j]
+                if i + 1 < len(a) and self.joined_match(b[j], a[i] + a[i + 1]):  # a[i] a[i+1] = b[j]
                     m, ca, cb = solve(i + 2, used | (1 << j))
                     best = max(best, (m + 1, ca + 2, cb + 1))
             memo[state] = best
