@@ -38,8 +38,13 @@ def as_list(value):
     return out
 
 
+_SPECIAL = str.maketrans({"ł": "l", "Ł": "L", "ø": "o", "Ø": "O", "đ": "d", "Đ": "D", "ß": "ss", "æ": "ae",
+                          "Æ": "AE", "œ": "oe", "Œ": "OE", "ı": "i", "þ": "th", "Þ": "Th", "ð": "d", "Ð": "D",
+                          "ħ": "h", "Ħ": "H", "ŧ": "t", "Ŧ": "T"})
+
+
 def strip_accents(text):
-    text = unicodedata.normalize("NFKD", text)
+    text = unicodedata.normalize("NFKD", text.translate(_SPECIAL))
     return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
