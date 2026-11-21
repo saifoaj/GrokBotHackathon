@@ -2,8 +2,37 @@
 
 FinCI decides, for every sanctions, PEP, enforcement or adverse-media hit, whether the
 hit is the bank's customer (`SAME_ENTITY`), clearly someone else (`DIFFERENT_ENTITY`), or
-needs a person (`REVIEW`). It follows `POLICY.md` rule by rule, is fully deterministic and
-uses only the Python 3 standard library. No language model is called.
+needs a person (`REVIEW`). It follows `POLICY.md` rule by rule and uses only the Python 3
+standard library. The rules make every decision. Grok is used only to put values the rules
+cannot read into standard form, and to check free-text readings (see "Grok layer" below).
+
+## Grok layer
+
+Settings: `GROK_API_KEY` (or `XAI_API_KEY`) and `GROK_MODEL` (default `grok-4.7`), from the
+environment or `.env`. `LLM=0` turns off normalisation, `FACT_CHECK=0` the fact check. Without a
+key the system runs on the rules alone and its output is what it was before Grok was added.
+
+1. **Normalise** (`normalize.py`, before the rules run). A value the rules cannot read is sent to
+   Grok and the answer is written back into the loaded record in the form the rules already use.
+   A value the rules can read is never sent.
+
+   | Category the value feeds | Values asked | Written back as |
+   |---|---|---|
+   | `DOB_MISMATCH`, `TEMPORAL_IMPOSSIBILITY`, `DECEASED`, name+dob matches | dates of birth, check dates, screening dates, death dates | ISO `YYYY`, `YYYY-MM` or `YYYY-MM-DD` |
+   | `LOCATION_MISMATCH`, `NAME_LOCATION_MATCH` | country fields; a city, state or region as the last part of an address or place of birth | canonical country name (added as the address's last part) |
+   | `ENTITY_TYPE_MISMATCH` | blank or unusual entity types | `Individual` or `Company` |
+
+2. **Fact check** (`fact_check.py`). Each free-text reading the rules make is checked; a reading
+   Grok rejects is dropped (unknown), never replaced.
+
+**Same answer every time.** Every question is asked 5 times at temperature 0 and an answer is used
+only when all 5 agree (`llm.VOTES`). A split leaves the rules' reading. Answers and splits are saved
+under the exact question (`.cache/llm/`, `debug/fact_check.jsonl`), so later runs reuse them and make
+no calls: repeated runs give byte-identical output.
+
+**Kept to the policy on purpose.** Names are still matched only by principle 8 (`name_variants.json`
+groups, joined/split parts, the edit limit): LLM name groups would match names the policy says do not
+match. Dated reports are still only the exact "According to …; Month d, yyyy:" lines (principle 5).
 
 ```
 system/run <data folder> <output file>

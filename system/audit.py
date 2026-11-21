@@ -22,6 +22,7 @@ import hits as hitmod  # noqa: E402
 from customers import People, is_person, parse_kyc_note  # noqa: E402
 from decide import agrees, compare, contradicted  # noqa: E402
 import fact_check  # noqa: E402
+import normalize  # noqa: E402
 from load import Data, approved, low, read_jsonl  # noqa: E402
 from names import NameRules  # noqa: E402
 from norm import fmt_date, parse_date, phone_key  # noqa: E402
@@ -53,6 +54,7 @@ def d(date):
 class Auditor:
     def __init__(self, folder):
         self.data = Data(folder)
+        normalize.apply(self.data)
         mainmod.DATA = self.data
         self.rules = NameRules(folder)
         self.checker = fact_check.maybe_checker(live=False)

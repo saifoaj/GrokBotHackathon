@@ -14,6 +14,8 @@ import threading
 import time
 import urllib.error
 import urllib.request
+
+import llm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,8 +48,11 @@ _WRONG_NAMES = {
 }
 
 
+VOTES = 5  # a reading is rejected only when all 5 answers reject the same fields
+
+
 def load_key():
-    key = os.environ.get("GROK_API_KEY", "").strip()
+    key = llm.api_key()
     if key:
         return key
     path = os.path.join(ROOT, ".env")
@@ -82,7 +87,7 @@ def _flag_on():
 def packet_digest(source_id, kind, text, claim):
     raw = json.dumps({"source_id": source_id, "kind": kind, "text": text, "claim": claim},
                      sort_keys=True, ensure_ascii=False, default=str)
-    raw += "\n" + PROMPT
+    raw += "\n" + PROMPT + "\n%s votes=%d" % (llm.model(), VOTES)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -204,7 +209,7 @@ class Client:
 class Checker:
     def __init__(self, key="", model=None, path=None):
         self.key = key
-        self.model = model or os.environ.get("GROK_MODEL", DEFAULT_MODEL)
+        self.model = model or llm.model()
         self.path = path or cache_path()
         self.mode = COLLECT
         self.cache = load_cache(self.path)
@@ -217,7 +222,7 @@ class Checker:
         packet = {"source_id": source_id, "kind": kind, "text": text, "claim": claim, "digest": digest}
         if self.mode == COLLECT:
             prior = self.cache.get(digest)
-            if not prior or prior.get("ok") is None:
+            if not prior or (prior.get("ok") is None and not prior.get("split")):
                 self.pending[digest] = packet
             return {"ok": True, "wrong": []}
         prior = self.cache.get(digest)
@@ -228,7 +233,8 @@ class Checker:
     def flush(self):
         """Send queued readings that are not already cached. Returns how many were asked."""
         items = [(digest, packet) for digest, packet in sorted(self.pending.items())
-                 if digest not in self.cache or self.cache[digest].get("ok") is None]
+                 if digest not in self.cache or (self.cache[digest].get("ok") is None
+                                                 and not self.cache[digest].get("split"))]
         self.pending.clear()
         if not items:
             return 0
@@ -241,18 +247,33 @@ class Checker:
         handle = open(self.path, "a", encoding="utf-8", newline="\n")
         done = 0
 
-        def one(item):
-            digest, packet = item
+        def ask(packet):
             last = None
             for attempt in range(4):
                 try:
-                    reply = client.review(packet)
-                    reply.update(source_id=packet["source_id"], kind=packet["kind"], digest=digest)
-                    return digest, reply
+                    return client.review(packet)
                 except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError,
                         TimeoutError, ValueError) as error:
                     last = error
                     time.sleep(1.5 * (attempt + 1))
+            raise ValueError(str(last))
+
+        def one(item):
+            digest, packet = item
+            try:
+                votes = [ask(packet) for _ in range(VOTES)]
+            except ValueError as error:
+                last = error
+            else:
+                shape = {(v.get("ok"), tuple(sorted(set(normalize_wrong(v.get("wrong")))))) for v in votes}
+                if len(shape) == 1:
+                    reply = dict(votes[0])
+                else:  # the answers differ: keep the rules' reading, on this run and every later one
+                    reply = {"ok": None, "wrong": [], "split": True,
+                             "issue": "votes split: %s" % sorted(map(str, shape))}
+                reply.update(source_id=packet["source_id"], kind=packet["kind"], digest=digest,
+                             votes=[{"ok": v.get("ok"), "wrong": v.get("wrong")} for v in votes])
+                return digest, reply
             return digest, {"source_id": packet["source_id"], "kind": packet["kind"], "digest": digest,
                             "ok": None, "wrong": [], "issue": "check failed: %s" % last}
 

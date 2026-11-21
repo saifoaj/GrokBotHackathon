@@ -22,6 +22,7 @@ import fact_check  # noqa: E402
 import hits as hitmod  # noqa: E402
 from load import Data  # noqa: E402
 from names import NameRules  # noqa: E402
+import normalize  # noqa: E402
 from norm import parse_date  # noqa: E402
 
 
@@ -116,6 +117,9 @@ def main(argv):
     folder, output = argv[1], argv[2]
     start = time.time()
     DATA = Data(folder)
+    for kind, (unread, fixed) in sorted(normalize.apply(DATA).items()):
+        if unread:
+            sys.stderr.write("normalised %d of %d unreadable %s values\n" % (fixed, unread, kind))
     rules = NameRules(folder)
     checker = fact_check.maybe_checker()
     people = People(DATA, rules, checker=checker)
