@@ -12,7 +12,9 @@ sys.path.insert(0, os.path.dirname(HERE))
 from customers import People, parse_kyc_note  # noqa: E402
 from decide import compare  # noqa: E402
 from fact_check import (  # noqa: E402
-    Checker, claim_stands, parse_reply, strip_kyc, packet_digest, COLLECT, ENFORCE,
+    Checker, Client, claim_stands, message_text, openrouter_model, parse_reply,
+    resolve_backend, strip_kyc, packet_digest, COLLECT, ENFORCE,
+    DEFAULT_MODEL, DEFAULT_OPENROUTER_MODEL, OPENROUTER_URL, XAI_URL,
 )
 from hits import picture, search_checks  # noqa: E402
 from names import NameRules  # noqa: E402
@@ -107,6 +109,83 @@ class Pure(unittest.TestCase):
         b = packet_digest("NOTE-1", "kyc_note", "born 1977", {"dob": "1977"})
         self.assertEqual(a, b)
         self.assertNotEqual(a, packet_digest("NOTE-1", "kyc_note", "born 1978", {"dob": "1978"}))
+
+
+class Backend(unittest.TestCase):
+    def test_openrouter_key_selects_openrouter(self):
+        got = resolve_backend(env={"OPENROUTER_API_KEY": "sk-or-test"}, file_values={})
+        self.assertEqual(got["source"], "openrouter")
+        self.assertEqual(got["url"], OPENROUTER_URL)
+        self.assertEqual(got["key"], "sk-or-test")
+        self.assertEqual(got["model"], DEFAULT_OPENROUTER_MODEL)
+        self.assertEqual(got["extra"], {"reasoning": {"enabled": False}})
+
+    def test_grok_key_wins_when_both_are_set(self):
+        got = resolve_backend(
+            env={"GROK_API_KEY": "xai-test", "OPENROUTER_API_KEY": "sk-or-test"},
+            file_values={})
+        self.assertEqual(got["source"], "grok")
+        self.assertEqual(got["url"], XAI_URL)
+        self.assertEqual(got["model"], DEFAULT_MODEL)
+        self.assertEqual(got["extra"], {})
+
+    def test_openrouter_model_override_and_file(self):
+        got = resolve_backend(
+            env={},
+            file_values={"OPENROUTER_API_KEY": "sk-or-file", "OPENROUTER_MODEL": "x-ai/grok-4.6"})
+        self.assertEqual(got["model"], "x-ai/grok-4.6")
+        self.assertEqual(got["extra"], {})
+        self.assertEqual(got["key"], "sk-or-file")
+
+    def test_env_beats_dotenv(self):
+        got = resolve_backend(
+            env={"GROK_API_KEY": "xai-env"},
+            file_values={"OPENROUTER_API_KEY": "sk-or-file"})
+        self.assertEqual(got["source"], "grok")
+        self.assertEqual(got["key"], "xai-env")
+
+    def test_non_reasoning_xai_id_maps_to_openrouter(self):
+        model, extra = openrouter_model(DEFAULT_MODEL)
+        self.assertEqual(model, DEFAULT_OPENROUTER_MODEL)
+        self.assertFalse(extra["reasoning"]["enabled"])
+
+    def test_message_text_joins_parts(self):
+        self.assertEqual(message_text({"content": [{"type": "text", "text": '{"ok": true}'}]}),
+                         '{"ok": true}')
+
+
+class ClientRequest(unittest.TestCase):
+    def test_openrouter_request_disables_reasoning(self):
+        import io
+        from unittest import mock
+
+        captured = {}
+
+        class FakeResponse(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        def fake_urlopen(request, timeout=0):
+            captured["url"] = request.full_url
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            captured["auth"] = request.get_header("Authorization")
+            payload = {"choices": [{"message": {"content": '{"ok": true, "wrong": [], "issue": ""}'}}]}
+            return FakeResponse(json.dumps(payload).encode("utf-8"))
+
+        client = Client("sk-or-test", DEFAULT_OPENROUTER_MODEL, OPENROUTER_URL,
+                        {"reasoning": {"enabled": False}})
+        with mock.patch("urllib.request.urlopen", fake_urlopen):
+            reply = client.review({"source_id": "NOTE-1", "kind": "kyc_note", "text": "born 1977",
+                                   "claim": {"dob": "1977"}})
+        self.assertTrue(reply["ok"])
+        self.assertEqual(captured["url"], OPENROUTER_URL)
+        self.assertEqual(captured["auth"], "Bearer sk-or-test")
+        self.assertEqual(captured["body"]["model"], DEFAULT_OPENROUTER_MODEL)
+        self.assertEqual(captured["body"]["reasoning"], {"enabled": False})
+        self.assertEqual(captured["body"]["response_format"], {"type": "json_object"})
 
 
 class CacheModes(unittest.TestCase):

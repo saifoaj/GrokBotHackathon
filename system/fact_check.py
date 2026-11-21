@@ -17,8 +17,11 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-API_URL = "https://api.x.ai/v1/chat/completions"
+XAI_URL = "https://api.x.ai/v1/chat/completions"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+API_URL = XAI_URL
 DEFAULT_MODEL = "grok-4.20-0309-non-reasoning"
+DEFAULT_OPENROUTER_MODEL = "x-ai/grok-4.20"
 CACHE = os.path.join(ROOT, "debug", "fact_check.jsonl")
 COLLECT = "collect"
 ENFORCE = "enforce"
@@ -46,18 +49,81 @@ _WRONG_NAMES = {
 }
 
 
-def load_key():
-    key = os.environ.get("GROK_API_KEY", "").strip()
-    if key:
-        return key
-    path = os.path.join(ROOT, ".env")
+def _dotenv(path=None):
+    path = path or os.path.join(ROOT, ".env")
+    found = {}
     if not os.path.isfile(path):
-        return ""
+        return found
     with open(path, encoding="utf-8") as handle:
         for line in handle:
-            if line.startswith("GROK_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return ""
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
+            if "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            found[name.strip()] = value.strip().strip('"').strip("'")
+    return found
+
+
+def _setting(name, env, file_values):
+    if env is None:
+        env = os.environ
+    value = env.get(name, "")
+    if isinstance(value, str):
+        value = value.strip()
+    else:
+        value = ""
+    if value:
+        return value
+    return (file_values or {}).get(name, "").strip()
+
+
+def openrouter_model(model):
+    """Map an xAI model id onto an OpenRouter slug.
+
+    The default xAI model is the non-reasoning snapshot. OpenRouter exposes that
+    family as x-ai/grok-4.20 and turns thinking off with reasoning.enabled.
+    A full OpenRouter slug (one that contains "/") is sent unchanged.
+    """
+    raw = (model or "").strip()
+    if not raw or raw == DEFAULT_MODEL or "non-reasoning" in raw:
+        return DEFAULT_OPENROUTER_MODEL, {"reasoning": {"enabled": False}}
+    if raw.endswith("-reasoning") and "/" not in raw:
+        return DEFAULT_OPENROUTER_MODEL, {"reasoning": {"enabled": True}}
+    if "/" in raw:
+        return raw, {}
+    if raw.startswith("grok-"):
+        return "x-ai/" + raw, {}
+    return raw, {}
+
+
+def resolve_backend(env=None, file_values=None):
+    """Pick xAI when GROK_API_KEY is set, otherwise OpenRouter when its key is set.
+
+    Environment variables win over the same names in the project .env file.
+    """
+    if file_values is None:
+        file_values = _dotenv()
+    grok_key = _setting("GROK_API_KEY", env, file_values)
+    router_key = _setting("OPENROUTER_API_KEY", env, file_values)
+    grok_model = _setting("GROK_MODEL", env, file_values)
+    router_model = _setting("OPENROUTER_MODEL", env, file_values)
+    if grok_key:
+        return {"key": grok_key, "url": XAI_URL, "model": grok_model or DEFAULT_MODEL,
+                "extra": {}, "source": "grok"}
+    if router_key:
+        model, extra = openrouter_model(router_model or grok_model)
+        return {"key": router_key, "url": OPENROUTER_URL, "model": model,
+                "extra": extra, "source": "openrouter"}
+    return {"key": "", "url": XAI_URL, "model": grok_model or DEFAULT_MODEL,
+            "extra": {}, "source": ""}
+
+
+def load_key():
+    return resolve_backend()["key"]
 
 
 def clip(text, limit=2500):
@@ -162,10 +228,25 @@ def load_cache(path):
     return found
 
 
+def message_text(message):
+    content = (message or {}).get("content")
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, str):
+                parts.append(part)
+            elif isinstance(part, dict):
+                parts.append(part.get("text") or part.get("content") or "")
+        content = "".join(parts)
+    return content or ""
+
+
 class Client:
-    def __init__(self, key, model):
+    def __init__(self, key, model, url=None, extra=None):
         self.key = key
         self.model = model
+        self.url = url or XAI_URL
+        self.extra = extra or {}
         self.json_mode = True
         self.lock = threading.Lock()
 
@@ -181,10 +262,11 @@ class Client:
                     ensure_ascii=False, default=str)},
             ],
         }
+        body.update(self.extra)
         if self.json_mode:
             body["response_format"] = {"type": "json_object"}
         request = urllib.request.Request(
-            API_URL,
+            self.url,
             data=json.dumps(body).encode("utf-8"),
             headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"},
         )
@@ -198,13 +280,18 @@ class Client:
                     self.json_mode = False
                 return self.review(packet)
             raise ValueError("HTTP %s %s" % (error.code, detail))
-        return parse_reply(reply["choices"][0]["message"]["content"])
+        if "choices" not in reply:
+            detail = reply.get("error") or reply
+            raise ValueError("API error %s" % detail)
+        return parse_reply(message_text(reply["choices"][0].get("message")))
 
 
 class Checker:
-    def __init__(self, key="", model=None, path=None):
+    def __init__(self, key="", model=None, path=None, url=None, extra=None):
         self.key = key
         self.model = model or os.environ.get("GROK_MODEL", DEFAULT_MODEL)
+        self.url = url or XAI_URL
+        self.extra = extra or {}
         self.path = path or cache_path()
         self.mode = COLLECT
         self.cache = load_cache(self.path)
@@ -233,10 +320,10 @@ class Checker:
         if not items:
             return 0
         if not self.key:
-            sys.stderr.write("GROK_API_KEY is not set; %d readings were not checked\n" % len(items))
+            sys.stderr.write("GROK_API_KEY or OPENROUTER_API_KEY is not set; %d readings were not checked\n" % len(items))
             return 0
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
-        client = Client(self.key, self.model)
+        client = Client(self.key, self.model, self.url, self.extra)
         lock = threading.Lock()
         handle = open(self.path, "a", encoding="utf-8", newline="\n")
         done = 0
@@ -272,15 +359,21 @@ class Checker:
 
 
 def maybe_checker(live=True):
-    """A live checker when the API key is set, otherwise None. FACT_CHECK=0 disables it."""
+    """A live checker when an API key is set, otherwise None. FACT_CHECK=0 disables it.
+
+    GROK_API_KEY calls api.x.ai. OPENROUTER_API_KEY calls OpenRouter when no xAI key is set.
+    """
     if _flag_off():
         return None
-    key = load_key()
-    if not key:
+    backend = resolve_backend()
+    if not backend["key"]:
         if _flag_on():
-            sys.stderr.write("GROK_API_KEY is not set; fact checks skipped\n")
+            sys.stderr.write("GROK_API_KEY or OPENROUTER_API_KEY is not set; fact checks skipped\n")
         return None
-    checker = Checker(key if live else "", path=cache_path())
+    checker = Checker(backend["key"] if live else "", model=backend["model"], path=cache_path(),
+                      url=backend["url"], extra=backend["extra"])
+    if live:
+        sys.stderr.write("fact check via %s model %s\n" % (backend["source"], backend["model"]))
     if not live:
         checker.mode = ENFORCE
     return checker

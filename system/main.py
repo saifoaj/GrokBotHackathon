@@ -1,9 +1,10 @@
 """Screening review system: main.py <data folder> <output file>.
 
-The rules decide every hit. When GROK_API_KEY is set, each free-text reading
-(KYC note, support note, profile sentence, search snippet) is checked before
-the fact enters the picture; a rejected reading is dropped. FACT_CHECK=0 skips
-that check. A failure for a hit falls back to REVIEW / INSUFFICIENT_DATA.
+The rules decide every hit. When GROK_API_KEY or OPENROUTER_API_KEY is set, each
+free-text reading (KYC note, support note, profile sentence, search snippet) is
+checked before the fact enters the picture; a rejected reading is dropped.
+GROK_API_KEY is used when both are set. FACT_CHECK=0 skips that check. A failure
+for a hit falls back to REVIEW / INSUFFICIENT_DATA.
 """
 
 import json
