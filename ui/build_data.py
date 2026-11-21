@@ -138,6 +138,102 @@ def merges(records, data, people):
     return out
 
 
+PROVIDERS = ("Onfido", "Veriff", "Persona", "Sumsub", "Jumio", "Trulioo", "IDnow", "Mitek")
+DOC_TYPES = ("passport", "national ID", "driving licence", "residence permit", "ID card")
+SHORT_LISTING = [("sanctioned individual", "sanctioned"), ("politically exposed person", "politically exposed person"),
+                 ("subject of enforcement action", "enforcement"), ("named in adverse media", "adverse media"),
+                 ("state-owned enterprise official", "state-owned enterprise"), ("named on a watchlist", "watchlist")]
+MONTH_YEAR = re.compile(r"\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\b")
+
+
+def fit_rows(people, data, alert, screened, persons, linked):
+    """Step 3: each candidate record and the screened-detail filters it passed (kept = it is one of the people)."""
+    kept = {cid for p in persons for cid in p["anchors"]}
+    cands = sorted(linked) if linked else people.search_candidates(screened)
+    rows = []
+    for cid in cands:
+        c = data.customer.get(cid)
+        if not c:
+            continue
+        checks = {k: (ok, detail) for k, ok, detail in people.fit_checks(c, screened)}
+        dob = parse_date(c.get("dob"))
+        rows.append({"id": cid, "kept": cid in kept, "name": c.get("full_name"),
+                     "type": checks.get("type", (None,))[0], "dob": checks.get("dob", (None,))[0], "dob_year": dob[0] if dob else None,
+                     "name_ok": checks.get("name", (None,))[0], "country": checks.get("country", (None,))[0], "city": checks.get("city", (None,))[0]})
+    rows.sort(key=lambda r: (not r["kept"], -sum(1 for k in ("type", "dob", "name_ok") if r[k]), r["id"]))
+    return rows[:8], len(rows)
+
+
+def check_used(pic, data):
+    """Step 5: the newest approved identity check that gave the verified facts."""
+    src = pic.get("verified_name_src") or pic.get("verified_dob_src") or pic.get("latest_check")
+    if not src:
+        return None
+    if src.startswith("KYC-"):
+        k = next((k for cid in pic["records"] for k in data.checks_of_customer(cid) if k["check_id"] == src), None)
+        if not k:
+            return {"id": src}
+        return {"id": src, "provider": k.get("provider"), "date": k.get("checked_at"), "result": k.get("result"),
+                "doc": k.get("document_type"), "country": k.get("document_country"), "name": k.get("verified_name"),
+                "dob": k.get("verified_dob"), "text": None}
+    n = next((n for cid in pic["records"] for n in data.notes_by_email.get(low(data.customer[cid].get("email")), []) if n["note_id"] == src), None)
+    if not n:
+        return {"id": src}
+    text = n.get("text") or ""
+    f = parse_kyc_note(n) or {}
+    return {"id": src, "provider": next((p for p in PROVIDERS if p.lower() in text.lower()), None), "date": n.get("created_at"),
+            "result": "approved" if f.get("approved") else "not approved", "doc": next((d for d in DOC_TYPES if d.lower() in text.lower()), None),
+            "country": f.get("country"), "name": f.get("name"), "dob": fd(f.get("dob")), "text": text}
+
+
+def person_line(pic, data, merged):
+    """Step 4: the records that are one person (anchor first), why, and each record's nationality / residence."""
+    recs = [pic["anchor"]] + [c for c in pic["records"] if c != pic["anchor"]]
+    whys = []
+    for m in merged:
+        if m["why"].startswith("same phone"):
+            raw = data.customer[m["a"]].get("phone") or ""
+            whys.append("same phone %s and DOB" % raw)
+        else:
+            whys.append(m["why"])
+    places = ", ".join("%s/%s" % (data.customer[c].get("nationality") or "-", data.customer[c].get("residence_country") or "-") for c in recs)
+    return {"records": recs, "why": "; ".join(dict.fromkeys(whys)) if whys else "no other record shares its phone and DOB, or a document", "places": places}
+
+
+def field_countries(hit):
+    out = {}
+    for field in ("nationality", "citizenship", "countries", "addresses"):
+        for v in hit.get(field) or []:
+            c = countries.canon(v)
+            if c:
+                out.setdefault(c, [])
+                if field not in out[c]:
+                    out[c].append(field)
+    if hit.get("place_of_birth"):
+        c = countries.canon(hit["place_of_birth"])
+        if c:
+            out.setdefault(c, []).append("place of birth")
+    return out
+
+
+def describe_result(s, key_words, years, used):
+    """'33 in May 2019, politically exposed person in Brazil → 1985 or 1986' / 'adverse media, United Kingdom'."""
+    snippet = s.get("snippet") or ""
+    kind = next((short for phrase, short in SHORT_LISTING if phrase in snippet.lower()), "no listing")
+    stripped = snippet
+    for w in key_words:
+        stripped = re.sub(r"(?i)\b%s\b" % re.escape(w), " ", stripped)
+    found = countries.find_in_text(stripped)
+    place = ", ".join(found) or "no country"
+    if used and years:
+        m = MONTH_YEAR.search(snippet)
+        if m:
+            age = int(m.group(2)) - max(years)
+            return "%d in %s %s, %s in %s → %s" % (age, m.group(1), m.group(2), kind, place, " or ".join(str(y) for y in sorted(years)))
+        return "%s in %s → %s" % (kind, place, " or ".join(str(y) for y in sorted(years)))
+    return "%s, %s" % (kind, place)
+
+
 def main(folder):
     data = Data(folder)
     mainmod.DATA = data
@@ -158,7 +254,11 @@ def main(folder):
         pics = [people.picture(p, screened) for p in persons]
         screened_at = parse_date(alert.get("screened_at"))
         link = next(({"kind": k, "value": alert[k]} for k in ("account_ref", "login_handle", "email") if alert.get(k)), None)
-        linked = sorted({cid for p in persons for cid in p["anchors"]}) if link else []
+        linked = sorted({cid for k in ("account_ref", "login_handle") if alert.get(k)
+                         for a in (data.accounts_by_id.get(str(alert[k]).strip().upper(), []) if k == "account_ref" else data.accounts_by_login.get(low(alert[k]), []))
+                         for cid in [a["customer_id"]] if cid in data.customer}
+                        | set(data.customer_by_email.get(low(alert.get("email")), []) if alert.get("email") else []))
+        fits, n_cands = fit_rows(people, data, alert, screened, persons, linked)
         for hid in sorted(data.hits_of_alert[alert_id]):
             hit = data.hit[hid]
             h = hitmod.picture(hit, data, checker)
@@ -196,13 +296,21 @@ def main(folder):
                     "notes": sorted(set(notes)), "checks": sorted({k["check_id"] for cid in pic["records"] for k in data.checks_of_customer(cid)}),
                     "decision": r["decision"], "codes": r["codes"], "sentences": r["sentences"], "evidence": r["evidence"],
                     "trace": rule_trace(pic, h, r, rules, screened_at), "alignment": alignment(rules, cname, hname, company),
+                    "check_used": check_used(pic, data),
+                    "person_line": person_line(pic, data, merges(pic["records"], data, people) if len(pic["records"]) > 1 else []),
                 })
             searched = []
             if h["is_person"] and h["countries"]:
+                seen_sr = set()
                 for key, checks in hitmod.search_checks(hit, data, h["countries"]):
                     for s, ok, why, years in checks:
+                        if s["result_id"] in seen_sr:
+                            continue
+                        seen_sr.add(s["result_id"])
                         keep(s["result_id"], "search", s)
-                        searched.append({"id": s["result_id"], "used": s["result_id"] in h["sr"], "accepted": ok, "why": why, "years": years or []})
+                        used = s["result_id"] in h["sr"]
+                        searched.append({"id": s["result_id"], "used": used, "accepted": ok, "why": why, "years": years or [],
+                                         "text": describe_result(s, key.split(), years, used)})
             kind = KIND.get(h["dob_origin"], "listed date of birth")
             if h["dob_origin"] in ("profile", "search") and all(d[1] is None for d in h["dates"]):
                 hdobs = [{"years": sorted({d[0] for d in h["dates"]}), "month": None, "day": None, "src": (h["sr"] or [hid + "#profile_notes"])[0], "kind": kind}] if h["dates"] else []
@@ -214,7 +322,9 @@ def main(folder):
                 "hit_id": hid, "alert_id": alert_id, "decision": line["decision"], "code": line["reason_code"], "record": line["customer_record_id"],
                 "reason": line["reason"], "evidence": line["evidence"],
                 "label": {"decision": lab["decision"], "codes": lab["reason_codes"], "records": lab["customer_record_ids"], "evidence": lab["evidence"], "reason": lab["reference_reason"]} if lab else None,
-                "alert": {"screened_at": alert.get("screened_at"), "customer": alert.get("customer") or {}, "link": link, "linked": linked, "routes": routes, "hit_ids": alert.get("hit_ids", [])},
+                "alert": {"screened_at": alert.get("screened_at"), "customer": alert.get("customer") or {}, "link": link, "linked": linked, "routes": routes, "hit_ids": alert.get("hit_ids", []),
+                          "links": {k: alert.get(k) for k in ("account_ref", "login_handle", "email")}},
+                "fit": fits, "n_candidates": n_cands,
                 "persons": ppl,
                 "hit": {
                     "name": h["name"], "kind": "Individual" if h["is_person"] else "Company", "aliases": hit.get("aliases") or [], "categories": hit.get("categories") or [],
@@ -225,6 +335,8 @@ def main(folder):
                     "reports": [fd(h["report"])] if h["report"] else [], "death": fd(h["death"]),
                     "first_paragraph": re.split(r"\n\s*\n", notes_text.strip())[0][:1500] if notes_text else None,
                     "listing_phrase": hitmod.listing_phrase(hit), "searched": searched,
+                    "field_countries": field_countries(hit), "dob_origin": h["dob_origin"],
+                    "listing": hit.get("primary_category") or (hit.get("categories") or ["-"])[0],
                 },
             })
     out_hits.sort(key=lambda x: x["hit_id"])
