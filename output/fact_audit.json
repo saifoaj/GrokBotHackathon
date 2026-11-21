@@ -1,0 +1,920 @@
+[
+  {
+    "id": "NOTE-ACD86A",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client was living in Nigeria between 2012 and 2014."
+  },
+  {
+    "id": "NOTE-67BC90",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client was residing in the Netherlands from 2011 to 2021."
+  },
+  {
+    "id": "H-EC242D",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Elvira Velasco Morillo was aged 30 in November 1998, so the birth years are 1967 or 1968."
+  },
+  {
+    "id": "SR-2A7A3A",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Fabio Pinna was 24 in September 1992, so the birth years are 1967 or 1968."
+  },
+  {
+    "id": "SR-4A9A80",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Tamera Renee Williams was 38 in October 2017, so the birth years are 1978 or 1979."
+  },
+  {
+    "id": "NOTE-C1E05D",
+    "kind": "lived",
+    "supported": false,
+    "why": "Staying and working in Nigeria does not establish that the customer lived, resided, or was domiciled there."
+  },
+  {
+    "id": "SR-6646C3",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Delphine Lingemann was 21 in March 1994, so the birth years are 1972 or 1973."
+  },
+  {
+    "id": "NOTE-2D9C57",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user was a resident in Poland from 2015 until 2021."
+  },
+  {
+    "id": "NOTE-80C508",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer was living in Colombia."
+  },
+  {
+    "id": "SR-6F9E9A",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "David Corral Bustamante was 41 in 2014, so the birth year is 1972 or 1973."
+  },
+  {
+    "id": "NOTE-9C5BBD",
+    "kind": "lived",
+    "supported": true,
+    "why": "Residential status in Mexico means the customer resided there."
+  },
+  {
+    "id": "NOTE-A1F7C1",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer's home was in Colombia."
+  },
+  {
+    "id": "NOTE-D304D7",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client verified that they lived in the United Kingdom."
+  },
+  {
+    "id": "NOTE-AA57EF",
+    "kind": "lived",
+    "supported": false,
+    "why": "Occupied and worked do not show the user lived, resided, or had a home in the United States."
+  },
+  {
+    "id": "NOTE-04F059",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client said they lived in France."
+  },
+  {
+    "id": "SR-4BFF79",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Tor Fredrik Vejdeland was 30 in 2009, so the birth year is 1978 or 1979."
+  },
+  {
+    "id": "NOTE-51258A",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client declared they were dwelling in Bangladesh from 2014 to 2021."
+  },
+  {
+    "id": "SR-590704",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Marcos Roberto Costa was 33 in May 2019, so birth years 1985 or 1986 match."
+  },
+  {
+    "id": "NOTE-848BF0",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user was a resident in Denmark throughout 2012 to 2013."
+  },
+  {
+    "id": "H-CF0D5A",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Fabrizio Rossi was 24 in March 1999, so birth years 1974 or 1975 match."
+  },
+  {
+    "id": "NOTE-370706",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user reported they were settled in Nigeria throughout 2018 to 2022."
+  },
+  {
+    "id": "SR-AE2CE1",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Giampiero Fiorani was 52 in June 2012, so birth years 1959 or 1960 match."
+  },
+  {
+    "id": "SR-DEBC00",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "James Henry Neal was 52 in December 2011, so birth years 1958 or 1959 match."
+  },
+  {
+    "id": "NOTE-605382",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client resided in France from 2012 to 2013."
+  },
+  {
+    "id": "NOTE-C8AD16",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client’s home life was based in Ireland."
+  },
+  {
+    "id": "NOTE-AC53C7",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user was domiciled in India."
+  },
+  {
+    "id": "NOTE-F8D1C5",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer was living in Brazil."
+  },
+  {
+    "id": "NOTE-996C84",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user maintained a residence in Colombia."
+  },
+  {
+    "id": "NOTE-215987",
+    "kind": "lived",
+    "supported": true,
+    "why": "The individual lived in the United States."
+  },
+  {
+    "id": "NOTE-88E9B5",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer was living in Bangladesh."
+  },
+  {
+    "id": "H-58A39C",
+    "kind": "profile_age",
+    "supported": false,
+    "why": "The text names TIMOTHY PANGELIN VILLAGOMEZ, not Timothy Pangelinan Villagomez."
+  },
+  {
+    "id": "NOTE-7A2522",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user occupied a residence in Nigeria."
+  },
+  {
+    "id": "SR-2DA398",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Romanie Ricardo Gayle was 30 in April 2023, so the birth years are 1992 or 1993."
+  },
+  {
+    "id": "NOTE-F078F6",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says Australia was the site of the client's home life from 2011 to 2017."
+  },
+  {
+    "id": "H-582410",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Elvira Velasco Morillo was 30 in November 1998, so the birth years are 1967 or 1968."
+  },
+  {
+    "id": "H-4AA437",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Tomasz Paweł Drozd was 38 in January 2025, so the birth years are 1986 or 1987."
+  },
+  {
+    "id": "SR-7CD9FE",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Stian Storbukås was 34 in February 2013, so the birth years are 1978 or 1979."
+  },
+  {
+    "id": "NOTE-01A3F7",
+    "kind": "lived",
+    "supported": true,
+    "why": "The account holder had residency in Kenya from 2017 to 2020."
+  },
+  {
+    "id": "NOTE-6C7D3A",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user was based in Kenya and had residency there from 2012 to 2015."
+  },
+  {
+    "id": "SR-946E9A",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Francesca Morelli was 41 in February 2022, so the birth years are 1980 or 1981."
+  },
+  {
+    "id": "H-A4BC9A",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 25 in 1986, so the birth years are 1960 or 1961."
+  },
+  {
+    "id": "SR-01BFC3",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "He was 33 in 2010, so the birth years are 1976 or 1977."
+  },
+  {
+    "id": "H-D861DA",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 46 in 2023, so the birth years are 1976 or 1977."
+  },
+  {
+    "id": "SR-1054CF",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "He was 55 in 2011, so the birth years are 1955 or 1956."
+  },
+  {
+    "id": "NOTE-3CA967",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client had residency in the United States."
+  },
+  {
+    "id": "H-32F498",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 27 in 2006, so the birth years are 1978 or 1979."
+  },
+  {
+    "id": "NOTE-95D91E",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client lived in the United Kingdom."
+  },
+  {
+    "id": "H-C87381",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 38 in 2025, so the birth years are 1986 or 1987."
+  },
+  {
+    "id": "SR-0B6E82",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Mohammed Fareeduddin was 59 in August 2018, so birth years 1958 or 1959."
+  },
+  {
+    "id": "SR-8323EB",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Markus Gerhard Mueller was 51 in September 2015, so birth years 1963 or 1964."
+  },
+  {
+    "id": "SR-30AACE",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Farah Damji was 46 in May 2013, so birth years 1966 or 1967."
+  },
+  {
+    "id": "NOTE-2EF1F0",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer maintained residence in Ghana from 2014 to 2018."
+  },
+  {
+    "id": "NOTE-145A26",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client maintained a home in Pakistan from 2013 to 2022."
+  },
+  {
+    "id": "NOTE-4AD498",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer stayed in Colombia for living purposes between 2019 and 2022."
+  },
+  {
+    "id": "SR-756C40",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Julien Dubois was 38 in February 2015, so birth years 1976 or 1977."
+  },
+  {
+    "id": "SR-5B31C4",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Azam Cheema was 60 in April 2013, so birth years 1952 or 1953."
+  },
+  {
+    "id": "NOTE-C96F14",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer lived in Nigeria from 2015 through 2020."
+  },
+  {
+    "id": "NOTE-2C5DBF",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client resided in Brazil from 2016 to 2020."
+  },
+  {
+    "id": "NOTE-4A6650",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client's residence was in Mexico between 2017 and 2020."
+  },
+  {
+    "id": "NOTE-805CE7",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user's residence was in the United Kingdom between 2020 and 2021."
+  },
+  {
+    "id": "SR-CC94C3",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Tùng Thanh Nguyễn was 35 in January 2015, so the birth years are 1979 or 1980."
+  },
+  {
+    "id": "NOTE-3C6D25",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer lived in Mexico from 2016 to 2019."
+  },
+  {
+    "id": "NOTE-86D29C",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client lived in the United States from 2014 to 2016."
+  },
+  {
+    "id": "NOTE-7842F0",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user was living in Denmark from 2014 to 2020."
+  },
+  {
+    "id": "NOTE-7F183D",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer was living in India."
+  },
+  {
+    "id": "SR-65C752",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Bartolo Diego Gallardo was 39 in 2012, giving birth years 1972 or 1973."
+  },
+  {
+    "id": "H-42B957",
+    "kind": "profile_age",
+    "supported": false,
+    "why": "The text names TIMOTHY PANGELIN VILLAGOMEZ, not Timothy Pangelinan Villagomez."
+  },
+  {
+    "id": "H-2EBD19",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Frank Murud was 48 in October 2004, giving birth years 1955 or 1956."
+  },
+  {
+    "id": "NOTE-1E52C4",
+    "kind": "lived",
+    "supported": true,
+    "why": "The account holder maintained a residence in Nigeria."
+  },
+  {
+    "id": "SR-8E51A6",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Wiebke Muhsal was 27 in May 2013, giving birth years 1985 or 1986."
+  },
+  {
+    "id": "NOTE-C04311",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client maintained residency in the United States."
+  },
+  {
+    "id": "NOTE-4E64A8",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client was residing in Italy."
+  },
+  {
+    "id": "H-8C46EF",
+    "kind": "profile_age",
+    "supported": false,
+    "why": "The text says he was 27 when questioned about a June 2006 investigation, not that he was 27 in 2006."
+  },
+  {
+    "id": "H-972715",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 46 in January 2023, so the birth year is 1976 or 1977."
+  },
+  {
+    "id": "NOTE-110869",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text confirms the client's residence in South Africa."
+  },
+  {
+    "id": "NOTE-B62C5D",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client reported living in the United States."
+  },
+  {
+    "id": "SR-F2D13D",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "He was listed as 42 in a September 2006 profile, so the birth year is 1963 or 1964."
+  },
+  {
+    "id": "H-CF5228",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "The record gives his age as 38 on May 15, 2019, so the birth year is 1980 or 1981."
+  },
+  {
+    "id": "NOTE-204014",
+    "kind": "lived",
+    "supported": true,
+    "why": "Records state the client lived in Nigeria."
+  },
+  {
+    "id": "H-3DB30F",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "He was 37 by November 1981, so the birth year is 1943 or 1944."
+  },
+  {
+    "id": "SR-6D9F2B",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "The text gives Oleksii Volodymyrovych Hryhoriev’s age as 21 in 1996, which yields birth years 1974 or 1975."
+  },
+  {
+    "id": "SR-524998",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "The text gives Usman Sani’s age as 27 in 2024, which yields birth years 1996 or 1997."
+  },
+  {
+    "id": "NOTE-3A679A",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client was living in Nigeria during 2019 to 2020."
+  },
+  {
+    "id": "SR-D526DE",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "The text gives Diego Hurtado Gallardo’s age as 45 in 1991, which yields birth years 1945 or 1946."
+  },
+  {
+    "id": "NOTE-B492AD",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client was based in Portugal for residential purposes from 2011 to 2018."
+  },
+  {
+    "id": "H-792AF1",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "The text gives Mark E Phillips’s age as 24 in 1999, which yields birth years 1974 or 1975."
+  },
+  {
+    "id": "NOTE-804C38",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client maintained residence in Italy from 2014 to 2016."
+  },
+  {
+    "id": "NOTE-BEF2D1",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says Nigeria was the user’s country of residence from 2015 to 2022."
+  },
+  {
+    "id": "NOTE-634005",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says Kenya was the customer's base and residence in 2009-2010."
+  },
+  {
+    "id": "NOTE-0A7824",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client was living in Germany throughout 2019-2021."
+  },
+  {
+    "id": "NOTE-BFFB76",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text confirms the user's Poland residency for 2011-2013."
+  },
+  {
+    "id": "H-52BE0D",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Christian Zaum was 32 in September 2001, so birth year 1968 or 1969."
+  },
+  {
+    "id": "H-AB56D4",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Christopher Paul George was 38 on May 15, 2019, so birth year 1980 or 1981."
+  },
+  {
+    "id": "NOTE-4F58AF",
+    "kind": "lived",
+    "supported": false,
+    "why": "Located and employed is work or presence, not lived, resided, based, settled, domiciled, or home."
+  },
+  {
+    "id": "NOTE-D682AB",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user was based in Brazil for residence from 2015 until 2019."
+  },
+  {
+    "id": "NOTE-6F25D0",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user reported living in Australia from 2017 through 2023."
+  },
+  {
+    "id": "H-3E09E5",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Text says Thuận Thị Lê was 23 in September 2001, so birth years 1977 or 1978."
+  },
+  {
+    "id": "H-4A2E8B",
+    "kind": "profile_age",
+    "supported": false,
+    "why": "Text names TIMOTHY PANGELIN VILLAGOMEZ, not Timothy Pangelinan Villagomez."
+  },
+  {
+    "id": "NOTE-825CAD",
+    "kind": "lived",
+    "supported": true,
+    "why": "Text says the individual lived in the United States from 2017 to 2023."
+  },
+  {
+    "id": "H-84E6E6",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Text says Tomasz Drozd was 27 in June 2006, so birth years 1978 or 1979."
+  },
+  {
+    "id": "H-A7A9F9",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Text says Alexander Ostrowsky was 42 in April 2006, so birth years 1963 or 1964."
+  },
+  {
+    "id": "NOTE-80B75B",
+    "kind": "lived",
+    "supported": true,
+    "why": "Text cites the client’s living records for Peru from 2012 to 2021."
+  },
+  {
+    "id": "SR-DBC85C",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Text says Indiana Perez Soto was 32 in January 2024, so birth years 1991 or 1992."
+  },
+  {
+    "id": "H-FE1415",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Text says Jean-Philippe Laurent was 43 in December 2012, so birth years 1968 or 1969."
+  },
+  {
+    "id": "NOTE-96C160",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user confirmed they were living in Spain."
+  },
+  {
+    "id": "NOTE-785A0E",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer maintained a residence in Nigeria."
+  },
+  {
+    "id": "H-7A7ADF",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Adam Tomasz Drozd was 31 in December 2005, so birth years 1973 or 1974."
+  },
+  {
+    "id": "H-A84AD8",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Francisco Alex Silva Barros was 30 in February 2011, so birth years 1980 or 1981."
+  },
+  {
+    "id": "SR-A96BC2",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Anni Beurklian was 44 in June 2013, so birth years 1968 or 1969."
+  },
+  {
+    "id": "NOTE-F1D4BE",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client confirmed residency in Denmark."
+  },
+  {
+    "id": "NOTE-AFBFCE",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer reported residing in Romania."
+  },
+  {
+    "id": "NOTE-825945",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client was located in Ireland for living purposes."
+  },
+  {
+    "id": "H-A10CAD",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Alexander Ostrowsky was 42 in 2006, so the birth years 1963 or 1964 match."
+  },
+  {
+    "id": "H-765FED",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "The indictment subject Frank Murud was 48 in 2004, matching birth years 1955 or 1956."
+  },
+  {
+    "id": "NOTE-800455",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer held residency in Nigeria."
+  },
+  {
+    "id": "NOTE-A22937",
+    "kind": "lived",
+    "supported": false,
+    "why": "Staying and holding a job are not lived, resided, based, settled, domiciled, or home."
+  },
+  {
+    "id": "NOTE-9D81C3",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client resided in Argentina."
+  },
+  {
+    "id": "SR-A88751",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Aleksandar Raković was listed as 29 in 2002, so birth years 1972 or 1973 match."
+  },
+  {
+    "id": "NOTE-69F1D8",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user maintained residency in Nigeria."
+  },
+  {
+    "id": "NOTE-425318",
+    "kind": "lived",
+    "supported": false,
+    "why": "Employment and residential status do not state that the client lived or resided there."
+  },
+  {
+    "id": "NOTE-944E2F",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer lived in Nigeria."
+  },
+  {
+    "id": "H-683987",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Tomasz Paweł Drozd was 38 in 2025, so the birth years 1986 or 1987 match."
+  },
+  {
+    "id": "SR-AAEF9A",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "Anthony Brooks was 38 in 2009, so the birth years 1970 or 1971 match."
+  },
+  {
+    "id": "NOTE-DB9293",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the client lived in Cote D'Ivoire."
+  },
+  {
+    "id": "NOTE-1BEC4B",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user was living in Peru."
+  },
+  {
+    "id": "NOTE-1E444D",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user was based in Nigeria."
+  },
+  {
+    "id": "NOTE-FE8A62",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user's base of residence was in Australia."
+  },
+  {
+    "id": "NOTE-9D3BB0",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text confirms residential tenure in Pakistan."
+  },
+  {
+    "id": "SR-EC24A8",
+    "kind": "listing_age",
+    "supported": true,
+    "why": "The May 1986 filing cites 25-year-old Francesco Rinaldi, giving birth years 1960 or 1961."
+  },
+  {
+    "id": "NOTE-0BB89F",
+    "kind": "lived",
+    "supported": true,
+    "why": "The notes say the customer maintained residence in South Africa."
+  },
+  {
+    "id": "H-8B7CE3",
+    "kind": "profile_age",
+    "supported": false,
+    "why": "The text names TIMOTHY PANGELIN VILLAGOMEZ, not Timothy Pangelinan Villagomez."
+  },
+  {
+    "id": "NOTE-DC7745",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the user lived in South Africa."
+  },
+  {
+    "id": "H-A8A717",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Tomasz Paweł Drozd was 38 in January 2025, giving birth years 1986 or 1987."
+  },
+  {
+    "id": "NOTE-81CBC5",
+    "kind": "lived",
+    "supported": true,
+    "why": "The text says the customer lived in Nigeria."
+  },
+  {
+    "id": "NOTE-A103F6",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client verified they were residing in Brazil."
+  },
+  {
+    "id": "NOTE-F8B05B",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client confirmed they were residing in the United Kingdom."
+  },
+  {
+    "id": "H-227FDA",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Thuận Thị Lê was 23 in September 2001, so the birth years are 1977 or 1978."
+  },
+  {
+    "id": "NOTE-D3117F",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user was based in Austria between 2014 and 2017."
+  },
+  {
+    "id": "NOTE-5132FB",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user reported residency in Cote D'Ivoire from 2010 to 2011."
+  },
+  {
+    "id": "NOTE-5CB762",
+    "kind": "lived",
+    "supported": true,
+    "why": "The customer was living in Nigeria from 2012 to 2021."
+  },
+  {
+    "id": "NOTE-10AEAB",
+    "kind": "lived",
+    "supported": true,
+    "why": "The account holder reported living in the United States between 2013 and 2023."
+  },
+  {
+    "id": "H-F20ADB",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Jean-Philippe Laurent was 43 in December 2012, so the birth years are 1968 or 1969."
+  },
+  {
+    "id": "NOTE-B427A7",
+    "kind": "lived",
+    "supported": true,
+    "why": "The subject lived in Nigeria between 2014 and 2016."
+  },
+  {
+    "id": "H-9FE839",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "Adam Tomasz Drozd was 31 in December 2005, so the birth years are 1973 or 1974."
+  },
+  {
+    "id": "H-FAFFBE",
+    "kind": "profile_age",
+    "supported": true,
+    "why": "She was 30 in 1998, so the birth years 1967 and 1968 match."
+  },
+  {
+    "id": "NOTE-F302A4",
+    "kind": "lived",
+    "supported": true,
+    "why": "The user maintained a home in Nigeria, which counts as lived there."
+  },
+  {
+    "id": "NOTE-169A9A",
+    "kind": "lived",
+    "supported": true,
+    "why": "The account holder was based and living in the United States."
+  },
+  {
+    "id": "NOTE-F9A0F6",
+    "kind": "lived",
+    "supported": true,
+    "why": "The client lived in Nigeria during 2014 to 2021."
+  },
+  {
+    "id": "NOTE-0C692B",
+    "kind": "identity_model",
+    "supported": true,
+    "why": "The text says the person was born May 21, 1995."
+  },
+  {
+    "id": "NOTE-16DF08",
+    "kind": "identity_model",
+    "supported": true,
+    "why": "The document confirms a date of birth of 5 August 1988."
+  },
+  {
+    "id": "NOTE-407861",
+    "kind": "identity_model",
+    "supported": true,
+    "why": "Verification relied on a Singapore national ID."
+  },
+  {
+    "id": "NOTE-584E5C",
+    "kind": "identity_model",
+    "supported": true,
+    "why": "The text gives DOB April 6, 1961, matching the claimed birth date."
+  },
+  {
+    "id": "NOTE-D5E535",
+    "kind": "identity_model",
+    "supported": false,
+    "why": "No source text states that Persona verified a United States passport for 0000 BARAJAS on 2023-09-07 or calls 25 December 1962 a birth date."
+  }
+]

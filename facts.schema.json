@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "facts.schema.json",
+  "title": "Deterministic facts read from notes and search results",
+  "description": "One object for the whole file. notes[] and search_results[] are what the fixed patterns extract. model_notes, model_search_results, and model_hits are facts a model supplied only where a pattern returned nothing. A model fact counts only when its quote is an exact excerpt of the source. A missing fact is null or an empty list. Country values are canonical keys such as united kingdom, not display names.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["notes", "search_results"],
+  "properties": {
+    "notes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/note" }
+    },
+    "search_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/search_result" }
+    },
+    "model_notes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/model_note" }
+    },
+    "model_search_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/model_search" }
+    },
+    "model_hits": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/model_hit" }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["year", "month", "day"],
+      "properties": {
+        "year": { "type": "integer" },
+        "month": { "type": ["integer", "null"], "minimum": 1, "maximum": 12 },
+        "day": { "type": ["integer", "null"], "minimum": 1, "maximum": 31 }
+      }
+    },
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "note_id",
+        "channel",
+        "created_at",
+        "requester_email",
+        "role",
+        "passed",
+        "legal_name",
+        "date_of_birth",
+        "document_country",
+        "lived_countries"
+      ],
+      "properties": {
+        "note_id": { "type": "string", "pattern": "^NOTE-[0-9A-F]{6}$" },
+        "channel": { "type": "string", "minLength": 1 },
+        "created_at": { "type": ["string", "null"] },
+        "requester_email": { "type": ["string", "null"] },
+        "role": {
+          "type": "string",
+          "enum": ["identity", "residence", "none"],
+          "description": "identity: a KYC-channel note. residence: any other note that says where the customer lived. none: a note with no extracted fact."
+        },
+        "passed": {
+          "type": ["boolean", "null"],
+          "description": "True when an identity note says the check passed. False when it does not. Null for notes that are not identity checks."
+        },
+        "legal_name": {
+          "type": ["string", "null"],
+          "description": "The all-capitals name on a passed identity note. Null when there is no such name."
+        },
+        "date_of_birth": {
+          "description": "The full date of birth on a passed identity note. The date the note was written is not a birthday.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/date" }]
+        },
+        "document_country": {
+          "type": ["string", "null"],
+          "description": "Canonical country of the identity document on a passed identity note."
+        },
+        "lived_countries": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Canonical countries a residence note says the customer lived in, in alphabetical order. Empty for identity notes and for notes that do not say where someone lived."
+        }
+      }
+    },
+    "age": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age", "as_of", "birth_years"],
+      "properties": {
+        "age": { "type": "integer", "minimum": 1, "maximum": 110 },
+        "as_of": { "$ref": "#/$defs/date" },
+        "birth_years": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer" },
+          "description": "The two possible birth years, lower year first. Someone aged N in a given year was born in that year minus N, or one year earlier."
+        }
+      }
+    },
+    "search_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_id", "query", "source", "listing_phrases", "countries", "ages"],
+      "properties": {
+        "result_id": { "type": "string", "pattern": "^SR-[0-9A-F]{6}$" },
+        "query": { "type": "string" },
+        "source": { "type": ["string", "null"] },
+        "listing_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "a sanctioned individual",
+              "a politically exposed person",
+              "the subject of enforcement action",
+              "named in adverse media",
+              "a state-owned enterprise official",
+              "named on a watchlist"
+            ]
+          },
+          "description": "The fixed listing phrases that appear in the snippet, in policy order. Which hit this result belongs to is decided later, when the phrase and a country both match that hit."
+        },
+        "countries": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Canonical countries named in the snippet, in alphabetical order. Two-letter codes are not read out of prose."
+        },
+        "ages": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/age" },
+          "description": "Ages stated next to a date. A bare number such as 'Name, 33,' counts here. An age with no nearby date is not a fact."
+        }
+      }
+    },
+    "quoted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quote"],
+      "properties": {
+        "quote": { "type": "string", "minLength": 1 }
+      }
+    },
+    "model_note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note_id", "lived", "legal_name", "date_of_birth", "document_country"],
+      "properties": {
+        "note_id": { "type": "string", "pattern": "^NOTE-[0-9A-F]{6}$" },
+        "lived": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["country", "quote"],
+            "properties": {
+              "country": { "type": "string", "minLength": 1 },
+              "quote": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "legal_name": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value", "quote"],
+              "properties": {
+                "value": { "type": "string", "minLength": 1 },
+                "quote": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        },
+        "date_of_birth": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value", "quote"],
+              "properties": {
+                "value": { "$ref": "#/$defs/date" },
+                "quote": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        },
+        "document_country": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["country", "quote"],
+              "properties": {
+                "country": { "type": "string", "minLength": 1 },
+                "quote": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "model_age": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quote", "age", "as_of", "birth_years"],
+      "properties": {
+        "quote": { "type": "string", "minLength": 1 },
+        "age": { "type": ["integer", "null"], "minimum": 1, "maximum": 110 },
+        "as_of": { "$ref": "#/$defs/date" },
+        "birth_years": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer" }
+        }
+      }
+    },
+    "model_search": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_id", "ages_checked", "ages"],
+      "properties": {
+        "result_id": { "type": "string", "pattern": "^SR-[0-9A-F]{6}$" },
+        "ages_checked": { "type": "boolean" },
+        "ages": { "type": "array", "items": { "$ref": "#/$defs/model_age" } }
+      }
+    },
+    "model_hit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hit_id", "death_checked", "age_checked", "death", "profile_ages"],
+      "properties": {
+        "hit_id": { "type": "string", "pattern": "^H-[0-9A-F]{6}$" },
+        "death_checked": { "type": "boolean" },
+        "age_checked": { "type": "boolean" },
+        "death": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["quote", "year", "month", "day"],
+              "properties": {
+                "quote": { "type": "string", "minLength": 1 },
+                "year": { "type": "integer" },
+                "month": { "type": ["integer", "null"], "minimum": 1, "maximum": 12 },
+                "day": { "type": ["integer", "null"], "minimum": 1, "maximum": 31 }
+              }
+            }
+          ]
+        },
+        "profile_ages": { "type": "array", "items": { "$ref": "#/$defs/model_age" } }
+      }
+    }
+  }
+}

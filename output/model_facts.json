@@ -1,0 +1,1800 @@
+{
+  "model_notes": [
+    {
+      "note_id": "NOTE-0C692B",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": {
+        "value": {
+          "year": 1995,
+          "month": 5,
+          "day": 21
+        },
+        "quote": "May 21, 1995"
+      },
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-16DF08",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": {
+        "value": {
+          "year": 1988,
+          "month": 8,
+          "day": 5
+        },
+        "quote": "5 August 1988"
+      },
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-36827A",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-370706",
+      "lived": [
+        {
+          "country": "nigeria",
+          "quote": "settled in Nigeria"
+        }
+      ],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-407861",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": {
+        "country": "singapore",
+        "quote": "Singapore national ID"
+      }
+    },
+    {
+      "note_id": "NOTE-4EEC8C",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-4F58AF",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-584E5C",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": {
+        "value": {
+          "year": 1961,
+          "month": 4,
+          "day": 6
+        },
+        "quote": "April 6, 1961"
+      },
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-8C39AD",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-A22937",
+      "lived": [
+        {
+          "country": "singapore",
+          "quote": "Customer reported staying and holding a job within Singapore for the duration of 2011 to 2021."
+        }
+      ],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-AA57EF",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-AC53C7",
+      "lived": [
+        {
+          "country": "india",
+          "quote": "domiciled in India"
+        }
+      ],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-C1E05D",
+      "lived": [
+        {
+          "country": "nigeria",
+          "quote": "The user stayed and worked in Nigeria for the duration of 2014 to 2022."
+        }
+      ],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-C9CECC",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": null,
+      "document_country": null
+    },
+    {
+      "note_id": "NOTE-D5E535",
+      "lived": [],
+      "legal_name": null,
+      "date_of_birth": {
+        "value": {
+          "year": 1962,
+          "month": 12,
+          "day": 25
+        },
+        "quote": "25 December 1962"
+      },
+      "document_country": null
+    }
+  ],
+  "model_search_results": [
+    {
+      "result_id": "SR-6D9F2B",
+      "ages_checked": true,
+      "ages": [
+        {
+          "quote": "A 1996 media profile from October described Oleksii Volodymyrovych Hryhoriev, 21, as a sanctioned individual in Russia.",
+          "age": 21,
+          "as_of": {
+            "year": 1996,
+            "month": 10,
+            "day": null
+          },
+          "birth_years": [
+            1974,
+            1975
+          ]
+        }
+      ]
+    }
+  ],
+  "model_hits": [
+    {
+      "hit_id": "H-009799",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-00AC52",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-01C398",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-03C536",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-043339",
+      "death_checked": true,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0600F1",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-06E9D7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-07D1D1",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-094B85",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0A2FD4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0BB4ED",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0DBD59",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0E3F15",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0E4D25",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0F3C96",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-0F6562",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-100E0E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-13E1CF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-147AEF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-15D291",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-165764",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-167095",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-184E12",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-184EAC",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-1A98B8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-1F9155",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-2017F1",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-202F67",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-22A09C",
+      "death_checked": true,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-2334BD",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-239BBB",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-243D0E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-24416C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-2663D7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-292F2E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-2C4CE7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-2C6B2E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3024DE",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-30CCE6",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-325B15",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-330409",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-33106C",
+      "death_checked": true,
+      "age_checked": false,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-338C9D",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-34014C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-371C7D",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-376AF8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3A05C1",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3A552C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3A7B8E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3AF6C2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3B6D04",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3B8046",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3DB30F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": [
+        {
+          "quote": "Pere Punti reached 37 years of age by November 1981",
+          "age": 37,
+          "as_of": {
+            "year": 1981,
+            "month": 11,
+            "day": null
+          },
+          "birth_years": [
+            1943,
+            1944
+          ]
+        }
+      ]
+    },
+    {
+      "hit_id": "H-3DC662",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3EFA0F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-3F5292",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-414686",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-41B7C7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-44F5F0",
+      "death_checked": true,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4576E8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-46F1CE",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-474294",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4B83B4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4C3C21",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4D501F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4EF54E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-4F9AD8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-50E5CD",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-53ECF0",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-55BC49",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5680C5",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-573307",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-575004",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-57BE87",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-58CFBE",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5CCADF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5CF259",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5D0F40",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5E4B74",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-5EEC5A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-603F41",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-610376",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-628422",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6344A0",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-65AC2F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-672FA8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6A022B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6B97D4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6BA605",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6C7985",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6DAF97",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-6E5D85",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-710D2C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-77612C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-77C135",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-787BB9",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-792AF1",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": [
+        {
+          "quote": "Mark E Phillips, at 24, was taken into custody in May 1999.",
+          "age": 24,
+          "as_of": {
+            "year": 1999,
+            "month": 5,
+            "day": null
+          },
+          "birth_years": [
+            1974,
+            1975
+          ]
+        }
+      ]
+    },
+    {
+      "hit_id": "H-7BF47E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-7DA083",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-805D93",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-806C8A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-80B4B5",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-80FEC3",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8151D2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8203FA",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-82280A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-859405",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-85BD16",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8711D6",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-88FF77",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-89459B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8AB284",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8B4304",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8C46EF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8CC447",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8E3FA2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-8E635C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9049E7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9291C5",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-953146",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-96FC73",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-97956A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-990B1C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-99683A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-99B8A4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9AB491",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9B9614",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9E856C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9F196B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9F94B4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9FD80D",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-9FE839",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": [
+        {
+          "quote": "Adam Tomasz Drozd, at age 31, had charges filed against him in December 2005.",
+          "age": 31,
+          "as_of": {
+            "year": 2005,
+            "month": 12,
+            "day": null
+          },
+          "birth_years": [
+            1973,
+            1974
+          ]
+        }
+      ]
+    },
+    {
+      "hit_id": "H-A17540",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A4BD0B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A526C7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A7BA88",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A80C58",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A996EE",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-A9AA55",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-AADA76",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-AC2B5C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-AE0262",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-AECB84",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-AF9B65",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B0733B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B0F1DA",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B212FE",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B28CF3",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B2FD81",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B47A06",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B5160F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B619F7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B6E57C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B771A9",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-B79C82",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-BA4DBF",
+      "death_checked": true,
+      "age_checked": false,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-BB8979",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-BBC558",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-BE5AAC",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C249E5",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C417BC",
+      "death_checked": true,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C47910",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C4A63F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C5AD1C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C64AFF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-C9017A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-CC0C0E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-CD0602",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-CDEC83",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-CF0FF4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D07116",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D334A0",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D56175",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D6500B",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D66248",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D6AE72",
+      "death_checked": true,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D71960",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D9016A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-D9A96A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DB81E8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DBD785",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DBFE06",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DC5120",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DD1DA2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DD603E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DEEC43",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-DF872E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E0182D",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E1BFE5",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E31B13",
+      "death_checked": true,
+      "age_checked": false,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E3A326",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E3DB6E",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E4004C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E4DDC7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E58DF8",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E5B436",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E7BFE8",
+      "death_checked": true,
+      "age_checked": false,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E7DD9A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E94800",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E9AD19",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-E9CAEB",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-EB43B4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-EB91B7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-EC5FED",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-ECB80F",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-ECD9E6",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-EF2851",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-EF9BD2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F073AC",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F2AEA4",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F4D579",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F51449",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F609D7",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F7972A",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F86D82",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F9DBF9",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-F9E5F9",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FA9F83",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FB513C",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FB87F6",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FD5999",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FD9ECF",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FE02A6",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FE54E2",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    },
+    {
+      "hit_id": "H-FF3096",
+      "death_checked": false,
+      "age_checked": true,
+      "death": null,
+      "profile_ages": []
+    }
+  ]
+}
