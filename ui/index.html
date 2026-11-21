@@ -1,59 +1,1409 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Screening Explainer</title>
-<link rel="stylesheet" href="common.css">
-<style>
-  main { max-width: 1160px; margin: 0 auto; padding: 40px 16px 64px; }
-  .hero h1 { font-size: 34px; letter-spacing: -.02em; }
-  .hero p { font-size: 16px; max-width: 720px; }
-  .kpis { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 32px; }
-  .kpi { padding: 14px 16px; min-width: 150px; }
-  .kpi b { display: block; font-size: 24px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-  .v { padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: transform .12s, border-color .12s; color: var(--text); }
-  .v:hover { transform: translateY(-2px); border-color: var(--accent); }
-  .v .n { font: 600 12px var(--mono); color: var(--accent); }
-  .v h3 { font-size: 18px; }
-  .thumb { height: 96px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
-  .thumb span { position: absolute; border-radius: 4px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FinCI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    :root {
+      --bg: #eef0ee;
+      --card: #ffffff;
+      --soft: #f3f5f3;
+      --soft-2: #e9ece9;
+      --line: #e6e9e6;
+      --ink: #121614;
+      --muted: #6b716c;
+      --faint: #9aa09b;
+      --teal: #0e6b5c;
+      --mint: #dff0eb;
+      --mint-2: #cdebe1;
+      --red: #a3201d;
+      --red-line: #e0524f;
+      --rose: #fce4e3;
+      --rose-2: #f6d3d3;
+      --amber: #8a5a00;
+      --sand: #fcf0d9;
+      --indigo: #2f2e86;
+      --lav: #d9daf6;
+      --dark: #111614;
+      --dark-2: #1e2622;
+      --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --ease: cubic-bezier(.22, .8, .24, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -.005em;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: .86em;
+      letter-spacing: 0;
+    }
+
+    a.id,
+    .id {
+      color: var(--teal);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--teal) 45%, transparent);
+      text-underline-offset: 2px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: text-decoration-color .15s;
+    }
+
+    a.id:hover {
+      text-decoration-color: var(--teal);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .faint {
+      color: var(--faint);
+    }
+
+    .caps {
+      font: 600 11px var(--sans);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 2px;
+    }
+
+    /* scrollbars: thin and quiet */
+    .scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #cfd4cf transparent;
+    }
+
+    .scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .scroll::-webkit-scrollbar-thumb {
+      background: #cfd4cf;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    /* top bar: fixed, never scrolls */
+    .top {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 28px;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -.02em;
+      margin-right: auto;
+    }
+
+    .find {
+      width: 336px;
+      max-width: 46vw;
+      height: 42px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--card);
+      padding: 0 18px;
+      font-size: 14px;
+      transition: box-shadow .2s var(--ease);
+    }
+
+    .find:focus {
+      outline: 0;
+      box-shadow: 0 0 0 3px var(--mint-2);
+    }
+
+    .black {
+      height: 42px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 600;
+      padding: 0 18px;
+      cursor: pointer;
+      transition: transform .12s var(--ease), background .15s;
+    }
+
+    .black:hover {
+      background: #2a302d;
+    }
+
+    .black:active {
+      transform: scale(.97);
+    }
+
+    /* layout: queue and main scroll independently; nothing shifts */
+    .wrap {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: minmax(0, 1fr);
+      gap: 20px;
+      padding: 0 28px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+    }
+
+    /* queue */
+    .queue {
+      margin-bottom: 24px;
+      padding: 20px 20px 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .queue .hd,
+    .seg,
+    .filter {
+      flex-shrink: 0;
+    }
+
+    .queue .hd {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .queue .hd b {
+      font-size: 16px;
+    }
+
+    .queue .hd span {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .seg {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .seg button {
+      border: 0;
+      background: var(--soft);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+    }
+
+    .seg button:hover {
+      background: var(--soft-2);
+    }
+
+    .seg button:active {
+      transform: scale(.96);
+    }
+
+    .seg button.on {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .filter {
+      width: 100%;
+      height: 40px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--soft);
+      padding: 0 14px;
+      margin-bottom: 10px;
+      transition: box-shadow .2s var(--ease), background .2s;
+    }
+
+    .filter:focus {
+      outline: 0;
+      background: #fff;
+      box-shadow: 0 0 0 2px var(--mint-2);
+    }
+
+    .items {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      margin: 0 -6px;
+      padding: 0 6px 6px;
+    }
+
+    .it {
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      transition: background .16s var(--ease);
+    }
+
+    .it:hover {
+      background: var(--soft);
+    }
+
+    .it b {
+      display: block;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color .16s;
+    }
+
+    .it span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .it.sel {
+      background: var(--mint);
+    }
+
+    .it.sel b {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .empty {
+      padding: 24px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .main {
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      display: grid;
+      gap: 20px;
+      align-content: start;
+      grid-auto-rows: max-content;
+      padding-bottom: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .main.enter>* {
+      animation: rise .38s var(--ease) both;
+    }
+
+    .main.enter>*:nth-child(2) {
+      animation-delay: .03s;
+    }
+
+    .main.enter>*:nth-child(3) {
+      animation-delay: .06s;
+    }
+
+    .main.enter>*:nth-child(4) {
+      animation-delay: .09s;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* header */
+    .head {
+      display: grid;
+      grid-template-columns: 1fr 156px 1fr;
+      gap: 20px;
+      align-items: center;
+      padding: 26px 32px;
+    }
+
+    .head .c {
+      text-align: right;
+    }
+
+    .head h1 {
+      font-size: 27px;
+      font-weight: 700;
+      margin: 6px 0 4px;
+      letter-spacing: -.025em;
+      line-height: 1.15;
+    }
+
+    .head .sub {
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .ring {
+      width: 152px;
+      height: 152px;
+      border-radius: 50%;
+      display: grid;
+      place-content: center;
+      text-align: center;
+      border: 2px solid;
+      padding: 10px;
+    }
+
+    .main.enter .ring {
+      animation: pop .45s var(--ease) both .05s;
+    }
+
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: scale(.88);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .ring b {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+
+    .ring span {
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    .ring.SAME_ENTITY {
+      background: var(--rose);
+      border-color: var(--red-line);
+      color: var(--red);
+    }
+
+    .ring.DIFFERENT_ENTITY {
+      background: var(--mint);
+      border-color: #2f9e83;
+      color: var(--teal);
+    }
+
+    .ring.REVIEW {
+      background: var(--sand);
+      border-color: #e0a63a;
+      color: var(--amber);
+    }
+
+    /* comparison */
+    .cmp {
+      padding: 10px 28px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 160px 1fr;
+      gap: 20px;
+      align-items: center;
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .row:first-child {
+      border-top: 0;
+    }
+
+    .row .l {
+      text-align: right;
+    }
+
+    .row .v {
+      font-weight: 500;
+    }
+
+    .row .s {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .row .m {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+
+    .pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 11px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .p-agree {
+      background: var(--mint);
+      color: var(--teal);
+    }
+
+    .p-contra {
+      background: var(--rose);
+      color: var(--red);
+    }
+
+    .p-cant {
+      background: var(--sand);
+      color: var(--amber);
+    }
+
+    .p-none {
+      background: var(--soft);
+      color: var(--muted);
+    }
+
+    .p-guard {
+      background: var(--lav);
+      color: var(--indigo);
+    }
+
+    /* why + analyst */
+    .duo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .why {
+      padding: 24px;
+      min-height: 222px;
+    }
+
+    .why h3,
+    .call h3 {
+      font-size: 14px;
+      margin: 0 0 12px;
+    }
+
+    .why p {
+      margin: 0 0 12px;
+    }
+
+    .why .ids {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .call {
+      background: var(--dark);
+      color: #fff;
+      padding: 24px;
+      border-radius: 24px;
+    }
+
+    .call .btns {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .call .btns button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 0 0 0 #fff;
+      transition: box-shadow .22s var(--ease), transform .12s var(--ease), filter .15s;
+    }
+
+    .call .btns button:hover {
+      filter: brightness(1.04);
+    }
+
+    .call .btns button:active {
+      transform: scale(.96);
+    }
+
+    .b-same {
+      background: var(--rose-2);
+      color: var(--red);
+    }
+
+    .b-diff {
+      background: var(--mint-2);
+      color: var(--teal);
+    }
+
+    .b-esc {
+      background: var(--lav);
+      color: var(--indigo);
+    }
+
+    .call .btns button.on {
+      box-shadow: 0 0 0 2px var(--dark), 0 0 0 4px #fff;
+    }
+
+    .call .btns button.on::after {
+      content: "✓";
+      margin-left: 6px;
+    }
+
+    .call textarea {
+      width: 100%;
+      min-height: 88px;
+      background: var(--dark-2);
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #e8ece9;
+      resize: vertical;
+      transition: box-shadow .2s var(--ease);
+    }
+
+    .call textarea:focus {
+      outline: 0;
+      box-shadow: 0 0 0 2px #3a4a42;
+    }
+
+    .call textarea::placeholder {
+      color: #7d877f;
+    }
+
+    .saved {
+      font-size: 11.5px;
+      color: #7d877f;
+      margin-top: 8px;
+      height: 16px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .saved.show {
+      opacity: 1;
+    }
+
+    /* full trace: sections start closed and animate open */
+    .trace {
+      overflow: hidden;
+    }
+
+    .trace .th {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 24px 14px;
+      gap: 12px;
+    }
+
+    .trace .th b {
+      font-size: 16px;
+    }
+
+    .trace .th button {
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color .15s;
+    }
+
+    .trace .th button:hover {
+      color: var(--ink);
+    }
+
+    .acc {
+      border-top: 1px solid #fff;
+    }
+
+    .acc-h {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--soft);
+      border: 0;
+      padding: 14px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: background .18s var(--ease);
+    }
+
+    .acc-h:hover {
+      background: var(--soft-2);
+    }
+
+    .pm {
+      width: 12px;
+      height: 12px;
+      position: relative;
+      flex-shrink: 0;
+      transition: transform .32s var(--ease);
+    }
+
+    .pm::before,
+    .pm::after {
+      content: "";
+      position: absolute;
+      background: currentColor;
+      border-radius: 1px;
+      transition: transform .32s var(--ease);
+    }
+
+    .pm::before {
+      left: 0;
+      right: 0;
+      top: 5.25px;
+      height: 1.5px;
+    }
+
+    .pm::after {
+      top: 0;
+      bottom: 0;
+      left: 5.25px;
+      width: 1.5px;
+    }
+
+    .acc.open .pm {
+      transform: rotate(180deg);
+    }
+
+    .acc.open .pm::after {
+      transform: scaleY(0);
+    }
+
+    .acc-b {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .36s var(--ease);
+    }
+
+    .acc.open .acc-b {
+      grid-template-rows: 1fr;
+    }
+
+    .acc-in {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .acc .body {
+      padding: 18px 24px 20px;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity .25s var(--ease), transform .3s var(--ease);
+    }
+
+    .acc.open .body {
+      opacity: 1;
+      transform: none;
+      transition-delay: .06s;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 28px;
+    }
+
+    .step h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+
+    .step p {
+      margin: 0;
+    }
+
+    .step .g {
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .step.full {
+      grid-column: 1 / -1;
+    }
+
+    .fit {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      margin-top: 2px;
+    }
+
+    .fit th {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-align: left;
+      padding: 0 10px;
+    }
+
+    .fit td {
+      padding: 8px 10px;
+      background: var(--soft);
+      font-size: 13.5px;
+    }
+
+    .fit td:first-child {
+      border-radius: 10px 0 0 10px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+
+    .fit td:last-child {
+      border-radius: 0 10px 10px 0;
+    }
+
+    .fit tr.kept td {
+      background: var(--mint);
+    }
+
+    .fit .ok {
+      color: var(--teal);
+    }
+
+    .fit .no {
+      color: #d4322f;
+    }
+
+    .fit tr.kept td:last-child {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .fit tr.out td:last-child {
+      color: var(--muted);
+    }
+
+    .quote {
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-style: italic;
+      margin-top: 8px;
+      color: #333;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .facts .k {
+      font: 600 10.5px var(--sans);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sr {
+      display: grid;
+      grid-template-columns: 96px 90px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 13.5px;
+    }
+
+    .sr .mono {
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+
+    .sr.used {
+      background: var(--mint);
+    }
+
+    .sr.used .st {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .sr .st {
+      color: var(--muted);
+    }
+
+    .sr-more {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .36s var(--ease);
+    }
+
+    .sr-more.open {
+      grid-template-rows: 1fr;
+    }
+
+    .sr-more>div {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .more {
+      display: inline-block;
+      margin: 8px 10px 0;
+      border: 0;
+      background: none;
+      padding: 0;
+    }
+
+    .tests .t {
+      display: grid;
+      grid-template-columns: 200px 140px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .tests .t:first-child {
+      border-top: 0;
+    }
+
+    /* drawer */
+    .back {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 22, 20, .28);
+      z-index: 40;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .28s var(--ease), visibility .28s;
+    }
+
+    .back.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: min(560px, 100%);
+      background: var(--card);
+      z-index: 50;
+      transform: translateX(104%);
+      transition: transform .34s var(--ease);
+      display: flex;
+      flex-direction: column;
+      border-radius: 24px 0 0 24px;
+      box-shadow: -20px 0 60px rgba(17, 22, 20, .12);
+    }
+
+    .drawer.open {
+      transform: none;
+    }
+
+    .drawer header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .drawer header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .drawer header button {
+      border: 0;
+      background: var(--soft);
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .drawer header button:hover {
+      background: var(--soft-2);
+    }
+
+    .drawer .db {
+      padding: 18px 24px;
+      overflow: auto;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 6px 12px;
+      font-size: 13px;
+    }
+
+    .kv dt {
+      color: var(--muted);
+    }
+
+    .kv dd {
+      margin: 0;
+      word-break: break-word;
+    }
+
+    table.ref {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.ref td,
+    table.ref th {
+      padding: 9px 6px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table.ref th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .code {
+      font: 500 11.5px var(--mono);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      body {
+        overflow: auto;
+        height: auto;
+        display: block;
+      }
+
+      .wrap {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        padding-bottom: 32px;
+      }
+
+      .queue {
+        max-height: 46vh;
+        margin-bottom: 0;
+      }
+
+      .main {
+        overflow: visible;
+        height: auto;
+      }
+
+      .duo,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .facts {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .top {
+        padding: 14px 16px;
+        flex-wrap: wrap;
+      }
+
+      .find {
+        max-width: none;
+        width: 100%;
+        order: 3;
+      }
+
+      .wrap {
+        padding: 0 16px 32px;
+      }
+
+      .head {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .head .c {
+        text-align: center;
+      }
+
+      .ring {
+        margin: 0 auto;
+      }
+
+      .row {
+        grid-template-columns: 1fr 110px 1fr;
+        gap: 10px;
+      }
+
+      .tests .t {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<main>
-  <section class="hero">
-    <p class="faint mono">Same Person or Not? · deterministic rule engine · no LLM</p>
-    <h1>Six ways to explain a screening decision</h1>
-    <p class="muted">Every page reads the same run of the FinCI system (<code>system/run</code>) on the dev set, exported by <code>ui/build_data.py</code>. Pick a hit in the search box at the top of any page, then flip between variants with ← → or the dropdown: the selected hit follows you. Click any <span class="chip">ID</span> to open the raw record behind it.</p>
-  </section>
-  <section class="kpis" id="kpis"></section>
-  <section class="grid" id="grid"></section>
-</main>
-<script src="data.js"></script>
-<script src="common.js"></script>
-<script>
-const { D, VARIANTS, esc } = UX;
-UX.nav("index.html", { noPicker: true });
-const s = D.stats, n = D.hits.length;
-document.getElementById("kpis").innerHTML = [
-  ["Hits decided", n], ["Cleared", `${s.decisions.DIFFERENT_ENTITY} · ${Math.round(100 * s.decisions.DIFFERENT_ENTITY / n)}%`],
-  ["Matches", s.decisions.SAME_ENTITY], ["Sent to review", s.decisions.REVIEW], ["Alerts closed", `${s.alerts_closed} / ${s.alerts}`],
-  ["Practice labels", `${s.labels_right} / ${s.labels} right`],
-].map(([k, v]) => `<div class="card kpi"><span class="muted">${k}</span><b>${v}</b></div>`).join("");
-const shapes = [
-  [[4,6,28,88],[36,6,60,20],[36,32,60,58]], [[40,6,20,14],[40,26,20,14],[40,46,20,14],[40,66,20,14]], [[4,8,42,84],[54,8,42,84]],
-  [[4,8,28,30],[36,8,28,30],[68,8,28,30],[4,46,92,46]], [[4,8,92,26],[4,40,92,26],[4,72,92,20]], [[4,8,92,84]],
-];
-const col = ["var(--accent)", "var(--diff)", "var(--rev)", "var(--same)", "var(--line-2)"];
-document.getElementById("grid").innerHTML = VARIANTS.map((v, i) => `
-  <a class="card v" data-vlink="${v[0]}" href="${v[0]}">
-    <div class="thumb">${shapes[i].map((r, j) => `<span style="left:${r[0]}%;top:${r[1]}%;width:${r[2]}%;height:${r[3]}%;background:${col[(i + j) % 5]};opacity:${i === 5 ? .35 : .55}"></span>`).join("")}
-      ${i === 5 ? Array.from({length: 48}, (_, k) => `<span style="left:${6 + (k % 8) * 11.5}%;top:${12 + Math.floor(k / 8) * 13}%;width:9%;height:9%;background:${col[(k * 7) % 4]};opacity:.7"></span>`).join("") : ""}</div>
-    <span class="n">${String(i + 1).padStart(2, "0")}</span>
-    <h3>${esc(v[1])}</h3>
-    <span class="muted">${esc(v[2])}</span>
-  </a>`).join("");
-</script>
+  <header class="top">
+    <span class="brand">FinCI</span>
+    <input class="find" id="find" list="hitlist" placeholder="Find a hit, name or alert" aria-label="Find a hit">
+    <datalist id="hitlist"></datalist>
+    <button class="black" id="refbtn">Reason codes</button>
+  </header>
+  <div class="wrap">
+    <aside class="card queue">
+      <div class="hd"><b>Queue</b><span id="count"></span></div>
+      <div class="seg" id="seg" role="tablist"></div>
+      <input class="filter" id="filter" placeholder="Filter by name, ID or code">
+      <div class="items scroll" id="items"></div>
+    </aside>
+    <section class="main scroll" id="main"></section>
+  </div>
+  <div class="back" id="back"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true"></aside>
+  <script src="data.js"></script>
+  <script>
+    const D = window.DATA;
+    if (!D) document.body.innerHTML = '<p style="padding:40px">data.js not found. Run <code>python3 ui/build_data.py</code> first.</p>';
+    const HITS = D.hits, BY = Object.fromEntries(HITS.map(h => [h.hit_id, h]));
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const title = s => { s = String(s || ""); return s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()) : s; };
+    const idlink = id => `<a class="id" data-rec="${esc(id)}">${esc(id)}</a>`;
+    const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
+
+    /* vocabulary (hackathon brief) */
+    const DECISION_MEANING = {
+      DIFFERENT_ENTITY: "The evidence shows the hit is a different person or company. The hit is cleared.",
+      SAME_ENTITY: "The evidence shows the hit is the customer. The alert goes to the compliance team.", REVIEW: "The evidence cannot settle it. A person looks at it."
+    };
+    const CODE_DECISION = {
+      TEMPORAL_IMPOSSIBILITY: "DIFFERENT_ENTITY", DOB_MISMATCH: "DIFFERENT_ENTITY", LOCATION_MISMATCH: "DIFFERENT_ENTITY", NAME_MISMATCH_VERIFIED: "DIFFERENT_ENTITY",
+      ENTITY_TYPE_MISMATCH: "DIFFERENT_ENTITY", DECEASED: "DIFFERENT_ENTITY", NAME_DOB_LOCATION_MATCH: "SAME_ENTITY", NAME_DOB_MATCH: "SAME_ENTITY", NAME_LOCATION_MATCH: "SAME_ENTITY",
+      INSUFFICIENT_DATA: "REVIEW", AMBIGUOUS_CUSTOMER_RECORD: "REVIEW"
+    };
+    const USE_WHEN = {
+      TEMPORAL_IMPOSSIBILITY: "The customer was too young, or not yet incorporated, at the earliest dated report",
+      DOB_MISMATCH: "The customer's date of birth (or a company's incorporation date) contradicts every birth date the hit gives",
+      LOCATION_MISMATCH: "Every country tied to the customer differs from every country tied to the hit",
+      NAME_MISMATCH_VERIFIED: "The customer's verified legal name does not agree with any of the hit's names", ENTITY_TYPE_MISMATCH: "One is a person and the other a company",
+      DECEASED: "The hit's profile gives a date of death before the customer was screened", NAME_DOB_LOCATION_MATCH: "Name, date of birth and country all agree and nothing contradicts them",
+      NAME_DOB_MATCH: "Name and date of birth agree and nothing contradicts them", NAME_LOCATION_MATCH: "Companies only: name and country agree and nothing contradicts them",
+      INSUFFICIENT_DATA: "Nothing settles it: no contradiction, and not enough agreement to confirm",
+      AMBIGUOUS_CUSTOMER_RECORD: "More than one person in the system of record fits the alert and they lead to different decisions"
+    };
+    const WHY = {
+      NAME_DOB_LOCATION_MATCH: "Name, date of birth and country agree, and nothing contradicts the hit.", NAME_DOB_MATCH: "Name and date of birth agree, and nothing contradicts the hit.",
+      NAME_LOCATION_MATCH: "Company name and country agree, and nothing contradicts the hit.", TEMPORAL_IMPOSSIBILITY: "The customer was too young, or not yet incorporated, at the earliest dated report.",
+      DOB_MISMATCH: "The customer's date of birth contradicts every birth date the hit gives.", LOCATION_MISMATCH: "Every country tied to the customer differs from every country tied to the hit.",
+      NAME_MISMATCH_VERIFIED: "The customer's verified legal name agrees with none of the hit's names.", ENTITY_TYPE_MISMATCH: "One is a person and the other a company.",
+      DECEASED: "The hit's profile gives a date of death before the customer was screened.", INSUFFICIENT_DATA: "No contradiction, and not enough agreement to confirm.",
+      AMBIGUOUS_CUSTOMER_RECORD: "More than one person fits the alert, and they lead to different decisions."
+    };
+    const RING = { SAME_ENTITY: "Same", DIFFERENT_ENTITY: "Different", REVIEW: "Review" };
+    const RING_SUB = {
+      NAME_DOB_LOCATION_MATCH: "name, DOB, location", NAME_DOB_MATCH: "name, DOB", NAME_LOCATION_MATCH: "name, location", TEMPORAL_IMPOSSIBILITY: "too young at report",
+      DOB_MISMATCH: "date of birth", LOCATION_MISMATCH: "location", NAME_MISMATCH_VERIFIED: "verified name", ENTITY_TYPE_MISMATCH: "person vs company", DECEASED: "deceased",
+      INSUFFICIENT_DATA: "insufficient data", AMBIGUOUS_CUSTOMER_RECORD: "ambiguous record"
+    };
+    const STATUS_LINE = { SAME_ENTITY: "Same entity", DIFFERENT_ENTITY: "Different entity", INSUFFICIENT_DATA: "Insufficient data", AMBIGUOUS_CUSTOMER_RECORD: "Ambiguous customer record" };
+    const TEST_NAME = {
+      ENTITY_TYPE_MISMATCH: "Type", DECEASED: "Time · date of death", TEMPORAL_IMPOSSIBILITY: "Time · earliest dated report", DOB_MISMATCH: "Date of birth",
+      LOCATION_MISMATCH: "Location", NAME_MISMATCH_VERIFIED: "Name (verified)"
+    };
+    const CALL_LINE = { same: "Marked same", diff: "Marked different", esc: "Escalated" };
+
+    /* state that survives switching hits and reloads */
+    let calls = store.get("sr-calls", {});
+    let openAcc = store.get("sr-open", { cust: false, hit: false, tests: false, label: false });
+    let scope = "ALL", q = "";
+    const current = () => BY[decodeURIComponent(location.hash.slice(1))] || BY["H-0181BD"] || HITS[0];
+    const statusLine = h => CALL_LINE[calls[h.hit_id]?.v] || STATUS_LINE[h.decision === "REVIEW" ? h.code : h.decision];
+
+    /* ---------------- queue: rebuilt only when the filter changes; selection just moves ---------------- */
+    const SEGS = [["REVIEW", "Review"], ["ALL", "All"], ["DIFFERENT_ENTITY", "Different"], ["SAME_ENTITY", "Same"]];
+    $("seg").innerHTML = SEGS.map(([k, v]) => `<button data-s="${k}" role="tab">${v}</button>`).join("");
+    $("seg").onclick = e => { const b = e.target.closest("button"); if (b && b.dataset.s !== scope) { scope = b.dataset.s; buildQueue(); } };
+    let filterTimer;
+    $("filter").oninput = e => { clearTimeout(filterTimer); filterTimer = setTimeout(() => { q = e.target.value.toLowerCase(); buildQueue(); }, 90); };
+    const inQueue = () => HITS.filter(h => (scope === "ALL" || h.decision === scope) && (!q || `${h.hit_id} ${h.alert_id} ${h.hit.name} ${h.alert.customer.name || ""} ${h.code}`.toLowerCase().includes(q)));
+    function buildQueue() {
+      const list = inQueue(), cur = current().hit_id;
+      $("seg").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.s === scope); b.setAttribute("aria-selected", b.dataset.s === scope); });
+      $("count").textContent = `${list.length} hits`;
+      $("items").innerHTML = list.map(h => `<div class="it ${h.hit_id === cur ? "sel" : ""}" data-h="${h.hit_id}"><b>${esc(title(h.alert.customer.name || h.hit.name))}</b>
+    <span>${esc(statusLine(h))}</span></div>`).join("") || '<div class="empty">No hits match.</div>';
+      $("items").scrollTop = 0;
+      revealSelected(false);
+    }
+    function selectInQueue(id) {
+      $("items").querySelector(".it.sel")?.classList.remove("sel");
+      $("items").querySelector(`[data-h="${id}"]`)?.classList.add("sel");
+      revealSelected(true);
+    }
+    function revealSelected(smooth) {
+      const el = $("items").querySelector(".it.sel"), box = $("items");
+      if (!el) return;
+      const top = el.offsetTop - box.offsetTop, bottom = top + el.offsetHeight;
+      if (top < box.scrollTop || bottom > box.scrollTop + box.clientHeight)
+        box.scrollTo({ top: top - box.clientHeight / 2 + el.offsetHeight / 2, behavior: smooth ? "smooth" : "auto" });
+    }
+    $("items").onclick = e => { const it = e.target.closest("[data-h]"); if (it && it.dataset.h !== current().hit_id) location.hash = it.dataset.h; };
+
+    /* find box */
+    $("hitlist").innerHTML = HITS.map(h => `<option value="${esc(h.hit_id + " · " + h.hit.name)}">`).join("");
+    $("find").onchange = () => { const v = $("find").value.trim(), h = BY[v.split(" ")[0]] || HITS.find(x => (x.hit_id + " " + x.hit.name + " " + x.alert_id).toLowerCase().includes(v.toLowerCase())); if (h) { location.hash = h.hit_id; $("find").blur(); } };
+    $("find").onfocus = () => $("find").select();
+
+    /* ---------------- hit view ---------------- */
+    function statuses(p) {
+      const T = Object.fromEntries((p?.trace || []).map(t => [t.rule, t])), ag = T.AGREEMENT?.detail || "";
+      const st = (rule, agree) => {
+        const t = T[rule]; if (!t || t.status === "n/a") return ["cant", "can't compare"]; if (t.status === "fired") return ["contra", "contradicts"];
+        if (t.status === "blocked") return ["guard", "differs · review"]; return agree ? ["agree", "agrees"] : ["none", "no conflict"];
+      };
+      const time = T.DECEASED?.status === "fired" || T.TEMPORAL_IMPOSSIBILITY?.status === "fired" ? ["contra", "contradicts"]
+        : T.TEMPORAL_IMPOSSIBILITY?.status === "passed" || T.DECEASED?.status === "passed" ? ["none", "no conflict"] : ["cant", "can't compare"];
+      return {
+        type: st("ENTITY_TYPE_MISMATCH", true), name: st("NAME_MISMATCH_VERIFIED", ag.startsWith("name agrees")),
+        dob: st("DOB_MISMATCH", ag.includes("date of birth agrees")), loc: st("LOCATION_MISMATCH", !ag.endsWith("none")), time
+      };
+    }
+    const pillOf = ([c, t]) => `<span class="pill p-${c}">${t}</span>`;
+    const years = x => x.years.length === 2 ? `${x.years[0]} or ${x.years[1]}` : [x.years[0], x.month && String(x.month).padStart(2, "0"), x.day && String(x.day).padStart(2, "0")].filter(Boolean).join("-");
+    const acc = (key, head, body) => `<div class="acc ${openAcc[key] ? "open" : ""}" data-acc="${key}">
+  <button class="acc-h" aria-expanded="${!!openAcc[key]}">${head}<i class="pm"></i></button><div class="acc-b"><div class="acc-in"><div class="body">${body}</div></div></div></div>`;
+    const callButtons = h => { const v = calls[h.hit_id]?.v; return `<button class="b-same ${v === "same" ? "on" : ""}" data-v="same">Same</button><button class="b-diff ${v === "diff" ? "on" : ""}" data-v="diff">Different</button><button class="b-esc ${v === "esc" ? "on" : ""}" data-v="esc">Escalate</button>`; };
+
+    function viewHTML(h) {
+      const p = h.persons.find(x => x.record === h.record) || h.persons[0], c = h.alert.customer, S = statuses(p);
+      const uniq = a => [...new Set(a)];
+      const anchorFirst = ids => [...ids].sort((a, b) => (b === h.record) - (a === h.record) || a.localeCompare(b));
+      const custName = p?.verified_name?.v || p?.names[0]?.v || c.name || "No customer found";
+      const cCountries = uniq((p?.countries || []).map(x => x.name)), cSrc = anchorFirst(uniq((p?.countries || []).map(x => x.src)).filter(x => x.startsWith("CUS-")));
+      const hc = h.hit.field_countries || {};
+      const srcLink = (label, id) => `<a class="id" data-rec="${esc(id)}">${label} · ${esc(id)}</a>`;
+      const cmpRow = (lab, s, lv, ls, rv, rs) => `<div class="row"><div class="l"><div class="v">${lv}</div>${ls ? `<div class="s">${ls}</div>` : ""}</div>
+    <div class="m"><span class="caps">${lab}</span>${pillOf(s)}</div><div><div class="v">${rv}</div>${rs ? `<div class="s">${rs}</div>` : ""}</div></div>`;
+      const dobSrc = p?.dobs.length === 1 ? (p.dob_verified ? srcLink("verified", p.dobs[0].src[0]) : p.dobs[0].src.map(idlink).join(" · ")) : p?.dobs.length > 1 ? "conflicting records" : "";
+      const hitDobSub = h.hit.dobs.length ? (h.hit.dob_origin === "search" ? srcLink("from search", h.hit.dobs[0].src) : h.hit.dob_origin === "listed" ? "dobs field" : "from profile notes") : "";
+      const tests = (p?.trace || []).filter(t => t.rule !== "AGREEMENT");
+      const n = s => tests.filter(t => t.status === s).length;
+      const testsTitle = `Tests · ${[n("fired") && `${n("fired")} contradict${n("fired") > 1 ? "" : "s"}`, n("blocked") && `${n("blocked")} held for review`, n("passed") && `${n("passed")} pass`, n("n/a") && `${n("n/a")} not applicable`].filter(Boolean).join(", ")}`;
+      const lab = h.label, sameEv = lab && JSON.stringify([...lab.evidence].sort()) === JSON.stringify(h.evidence);
+      const labelTitle = lab ? `Practice label · ${lab.decision === h.decision ? "matches" : "differs"}, ${sameEv ? "same evidence" : "different evidence"}` : "Practice label · none for this hit";
+      const links = h.alert.links || {}, blank = Object.entries({ "login handle": links.login_handle, email: links.email, "account ref": links.account_ref }).filter(([, v]) => !v).map(([k]) => k);
+      const linkKey = links.account_ref || links.login_handle || links.email;
+      const scrBlank = ["country", "city"].filter(k => !c[k]);
+      const chk = p?.check_used;
+      const sr = [...(h.hit.searched || [])].sort((a, b) => (b.used - a.used) || (a.text.startsWith("no listing") - b.text.startsWith("no listing")) || a.id.localeCompare(b.id));
+      const firstN = sr.some(x => x.used) ? 4 : 3, srHead = sr.slice(0, firstN), srRest = sr.slice(firstN);
+      const srRow = s => `<div class="sr ${s.used ? "used" : ""}"><a class="mono" data-rec="${esc(s.id)}">${esc(s.id)}</a><span class="st">${s.used ? "used" : "namesake"}</span><span>${esc(s.text)}</span></div>`;
+      const yesno = v => v === true ? '<span class="ok">✓</span>' : v === false ? '<span class="no">✗</span>' : '<span class="faint">–</span>';
+
+      const customerSteps = `<div class="steps">
+    <div class="step"><h4>1 · Screened as</h4><p>${esc(c.name || "-")} · ${esc(c.dob || "no DOB")} · ${esc(c.entity_type || "-")}</p>
+      <p class="g">${[scrBlank.length ? scrBlank.join(", ") + " blank" : [c.country, c.city].filter(Boolean).map(esc).join(", "), esc(h.alert_id), esc(h.alert.screened_at)].join(" · ")}</p></div>
+    <div class="step"><h4>2 · Link on the alert</h4>${linkKey ? `<p><span class="mono">${esc(linkKey)}</span> → ${h.alert.linked.map(esc).join(", ") || "no record"}</p><p class="g">${esc(blank.join(" and "))} blank</p>`
+          : `<p>No link</p><p class="g">searched ${h.n_candidates} record${h.n_candidates === 1 ? "" : "s"} sharing a name with the screened customer</p>`}</div>
+    <div class="step"><h4>3 · Which records fit</h4>${(h.fit || []).length ? `<table class="fit"><tr><th>record</th><th>type</th><th>DOB</th><th>name</th><th></th></tr>${h.fit.map(r => `<tr class="${r.kept ? "kept" : "out"}">
+      <td>${esc(r.id)}</td><td>${yesno(r.type)}</td><td>${r.dob === false ? `<span class="no">✗${r.dob_year || ""}</span>` : yesno(r.dob)}</td><td>${yesno(r.name_ok)}</td><td>${r.kept ? "kept" : "out · " + esc(r.name)}</td></tr>`).join("")}</table>
+      ${h.n_candidates > h.fit.length ? `<p class="g">+${h.n_candidates - h.fit.length} more did not fit</p>` : ""}` : '<p class="g">No record fits the screened details.</p>'}</div>
+    <div class="step"><h4>4 · One person</h4>${h.persons.length > 1 ? `<p>${h.persons.length} different people fit</p><p class="g">${h.persons.map(x => `${esc(x.person_line.records.join(" + "))} → ${RING[x.decision].toLowerCase()}`).join(" · ")}</p>`
+          : p ? `<p>${esc(p.person_line.records.join(" + "))}</p><p class="g">${esc(p.person_line.why)} · ${esc(p.person_line.places)}</p>` : '<p class="g">No customer.</p>'}</div>
+    <div class="step full"><h4>5 · Identity check used</h4>${chk ? `<p><span class="mono">${esc(chk.id)}</span> · ${[chk.provider, chk.date, chk.result, [chk.doc, chk.country].filter(Boolean).join(", ")].filter(Boolean).map(esc).join(" · ")}</p>
+      ${chk.text ? `<div class="quote">“${esc(chk.text)}”</div>` : `<div class="quote">verified name ${esc(chk.name)} · born ${esc(chk.dob || "not given")}</div>`}` : '<p class="g">No approved identity check: the declared record details are used.</p>'}</div>
+  </div>`;
+      const hitSide = `<div class="facts"><div><div class="k">Dobs field</div>${esc(h.hit.raw_dobs.join(", ") || "blank")}</div>
+      <div><div class="k">Profile notes</div>${h.hit.dob_origin === "profile" || h.hit.dob_origin === "profile_date" ? esc(h.hit.dobs.map(years).join(", ")) : h.hit.first_paragraph ? "no birth date" : "blank"}</div>
+      <div><div class="k">Countries</div>${Object.entries(hc).map(([k, f]) => `${esc(k)} <span class="muted">(${esc(f.join(", "))})</span>`).join(", ") || "blank"}</div>
+      <div><div class="k">Listing</div>${esc(h.hit.listing)}</div></div>
+    ${sr.length ? srHead.map(srRow).join("") + (srRest.length ? `<div class="sr-more" id="srmore"><div>${srRest.map(srRow).join("")}</div></div>
+      <button class="id more" id="moresr" data-n="${srRest.length}">+${srRest.length} more namesake${srRest.length > 1 ? "s" : ""}</button>` : "")
+          : `<p class="muted" style="margin:0">${h.hit.dobs.length ? "Search results not needed: the hit gives its own date of birth." : "No search results for this name."}</p>`}`;
+      const testsBody = tests.map(t => `<div class="t"><b>${TEST_NAME[t.rule]}</b>${pillOf({ fired: ["contra", "contradicts"], passed: ["agree", "pass"], blocked: ["guard", "held for review"], "n/a": ["cant", "not applicable"] }[t.status])}<span class="muted">${esc(t.detail)}</span></div>`).join("")
+        || '<span class="muted">No customer, so no test could run.</span>';
+      const labelBody = lab ? `<dl class="kv"><dt>Expected</dt><dd>${esc(lab.decision)} · <span class="code">${esc(lab.codes.join(", "))}</span></dd><dt>We said</dt><dd>${esc(h.decision)} · <span class="code">${esc(h.code)}</span></dd>
+      <dt>Expected evidence</dt><dd>${lab.evidence.map(idlink).join(" ")}</dd><dt>Reference reason</dt><dd>${esc(lab.reason)}</dd><dt>Our reason</dt><dd>${esc(h.reason)}</dd></dl>`
+        : `<dl class="kv"><dt>Our reason</dt><dd>${esc(h.reason)}</dd></dl>`;
+      const allOpen = Object.values(openAcc).every(Boolean);
+
+      return `
+  <div class="card head">
+    <div class="c"><div class="caps">Customer</div><h1>${esc(title(custName))}</h1><div class="sub">${esc(h.record || "no record")} · screened ${esc(h.alert.screened_at)}</div></div>
+    <div class="ring ${h.decision}" title="${esc(DECISION_MEANING[h.decision])}"><b>${RING[h.decision]}</b><span>${RING_SUB[h.code]}</span></div>
+    <div><div class="caps">Watchlist hit</div><h1>${esc(h.hit.name)}</h1><div class="sub">${esc(h.hit_id)} · ${esc(h.hit.listing)}</div></div>
+  </div>
+  <div class="card cmp">
+    ${cmpRow("Type", S.type, esc(p?.kind || c.entity_type), "", esc(h.hit.kind), "")}
+    ${cmpRow("Name", S.name, esc(p?.verified_name?.v || custName), p?.verified_name ? srcLink("verified", p.verified_name.src) : "not verified", esc(h.hit.name), h.hit.aliases.length ? esc(h.hit.aliases.slice(0, 3).join(" · ")) : "no aliases")}
+    ${cmpRow("Date of birth", S.dob, p?.dobs.map(d => esc(d.v)).join(" / ") || "unknown", dobSrc, h.hit.dobs.map(years).join(", ") || "unknown", hitDobSub)}
+    ${cmpRow("Location", S.loc, esc(cCountries.join(", ") || "none"), cSrc.join(" · "), esc(Object.keys(hc).join(", ") || "none"), "")}
+    ${cmpRow("Time", S.time, `Screened ${esc(h.alert.screened_at)}`, "", h.hit.death ? `Died ${esc(h.hit.death)}` : h.hit.reports.length ? `Earliest report ${esc(h.hit.reports[0])}` : "No dated report", h.hit.death && h.hit.reports.length ? `earliest report ${esc(h.hit.reports[0])}` : "")}
+  </div>
+  <div class="duo">
+    <div class="card why"><h3>Why ${RING[h.decision].toLowerCase()}</h3><p>${esc(WHY[h.code])}</p><div class="ids">${anchorFirst(h.evidence).map(e => e.includes("#") ? `<span class="id">${esc(e)}</span>` : idlink(e)).join("")}</div></div>
+    <div class="call"><h3>Analyst call</h3><div class="btns" id="btns">${callButtons(h)}</div>
+      <textarea id="memo" placeholder="Note for the file">${esc(calls[h.hit_id]?.note || "")}</textarea><div class="saved" id="saved">Saved</div></div>
+  </div>
+  <div class="card trace">
+    <div class="th"><b>Full trace</b><button id="allacc">${allOpen ? "Collapse all" : "Expand all"}</button></div>
+    ${acc("cust", "Customer side · 5 steps", customerSteps)}
+    ${acc("hit", "Hit side · facts and search results", hitSide)}
+    ${acc("tests", testsTitle, `<div class="tests">${testsBody}</div>`)}
+    ${acc("label", labelTitle, labelBody)}
+  </div>`;
+    }
+
+    function showHit(animate) {
+      const h = current(), main = $("main");
+      if (document.activeElement !== $("find")) $("find").value = `${h.hit_id} · ${h.hit.name}`;
+      main.classList.remove("enter");
+      main.innerHTML = viewHTML(h);
+      if (animate) { void main.offsetWidth; main.classList.add("enter"); main.scrollTo({ top: 0, behavior: "auto" }); }
+      selectInQueue(h.hit_id);
+    }
+
+    /* interactions inside the hit view: toggle in place so CSS can animate */
+    let savedTimer;
+    $("main").addEventListener("click", e => {
+      const head = e.target.closest(".acc-h");
+      if (head) {
+        const box = head.parentElement, key = box.dataset.acc;
+        openAcc[key] = !openAcc[key]; box.classList.toggle("open", openAcc[key]); head.setAttribute("aria-expanded", openAcc[key]); store.set("sr-open", openAcc);
+        $("allacc").textContent = Object.values(openAcc).every(Boolean) ? "Collapse all" : "Expand all";
+        if (openAcc[key]) setTimeout(() => { const r = box.getBoundingClientRect(), m = $("main").getBoundingClientRect(); if (r.bottom > m.bottom) $("main").scrollBy({ top: Math.min(r.bottom - m.bottom + 16, r.top - m.top - 16), behavior: "smooth" }); }, 380);
+        return;
+      }
+      if (e.target.id === "allacc") {
+        const to = !Object.values(openAcc).every(Boolean);
+        Object.keys(openAcc).forEach(k => openAcc[k] = to); store.set("sr-open", openAcc);
+        $("main").querySelectorAll(".acc").forEach(a => { a.classList.toggle("open", to); a.querySelector(".acc-h").setAttribute("aria-expanded", to); });
+        e.target.textContent = to ? "Collapse all" : "Expand all";
+        return;
+      }
+      if (e.target.id === "moresr") {
+        const box = $("srmore"), o = box.classList.toggle("open"), n = e.target.dataset.n;
+        e.target.textContent = o ? "Show fewer" : `+${n} more namesake${n > 1 ? "s" : ""}`;
+        return;
+      }
+      const b = e.target.closest("#btns button");
+      if (b) setCall(b.dataset.v);
+    });
+    $("main").addEventListener("input", e => {
+      if (e.target.id !== "memo") return;
+      const h = current(); calls[h.hit_id] = { ...(calls[h.hit_id] || {}), note: e.target.value }; store.set("sr-calls", calls);
+      clearTimeout(savedTimer); $("saved").classList.add("show"); savedTimer = setTimeout(() => $("saved")?.classList.remove("show"), 1200);
+    });
+    function setCall(v) {
+      const h = current(); calls[h.hit_id] = { ...(calls[h.hit_id] || {}), v: calls[h.hit_id]?.v === v ? undefined : v }; store.set("sr-calls", calls);
+      $("btns").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === calls[h.hit_id].v));
+      const it = $("items").querySelector(`[data-h="${h.hit_id}"] span`); if (it) it.textContent = statusLine(h);
+    }
+
+    /* drawers: raw records and the reason-code reference */
+    function openDrawer(head, html) {
+      $("drawer").innerHTML = `<header><h3>${head}</h3><button aria-label="Close">✕</button></header><div class="db scroll">${html}</div>`;
+      $("drawer").querySelector("button").onclick = closeDrawer;
+      $("drawer").setAttribute("aria-hidden", "false");
+      requestAnimationFrame(() => { $("back").classList.add("open"); $("drawer").classList.add("open"); });
+    }
+    function closeDrawer() { $("drawer").classList.remove("open"); $("back").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
+    $("back").onclick = closeDrawer;
+    document.addEventListener("click", e => {
+      const a = e.target.closest("[data-rec]"); if (!a) return;
+      const r = D.records[a.dataset.rec], text = r && (r.text || r.snippet);
+      openDrawer(`<span class="mono">${esc(a.dataset.rec)}</span>`, r ? (text ? `<div class="quote" style="font-style:normal;margin:0 0 14px">${esc(text)}</div>` : "") +
+        `<dl class="kv">${Object.entries(r).filter(([k, v]) => !["kind", "text", "snippet", "facts"].includes(k) && v != null && v !== "").map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</dd>`).join("")}</dl>`
+        : '<p class="muted">Not included in this export.</p>');
+    });
+    $("refbtn").onclick = () => openDrawer("Reason codes", `<p class="muted" style="margin-top:0">From the hackathon brief and POLICY.md. An alert is cleared only when every hit in it is DIFFERENT_ENTITY. When in doubt, REVIEW.</p>
+  <table class="ref"><tr><th>Decision</th><th>Meaning</th></tr>${Object.entries(DECISION_MEANING).map(([d, m]) => `<tr><td class="code">${d}</td><td>${esc(m)}</td></tr>`).join("")}</table>
+  <table class="ref" style="margin-top:18px"><tr><th>Decision</th><th>Reason code</th><th>Use it when</th></tr>${Object.entries(USE_WHEN).map(([c, u]) => `<tr><td class="code">${CODE_DECISION[c]}</td><td class="code">${c}</td><td>${esc(u)}</td></tr>`).join("")}</table>`);
+
+    /* keyboard: j/k move through the queue, 1 same, 2 different, 3 escalate, Esc closes the drawer */
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") return closeDrawer();
+      if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const list = inQueue(), i = list.findIndex(h => h.hit_id === current().hit_id);
+      if (e.key === "j" || e.key === "k") { const nx = list[Math.max(0, Math.min(list.length - 1, i + (e.key === "j" ? 1 : -1)))]; if (nx) location.hash = nx.hit_id; }
+      if (e.key === "1") setCall("same"); if (e.key === "2") setCall("diff"); if (e.key === "3") setCall("esc");
+    });
+    window.addEventListener("hashchange", () => showHit(true));
+    buildQueue();
+    showHit(false);
+  </script>
 </body>
+
 </html>
