@@ -1,0 +1,13 @@
+#!/bin/sh
+# Screening review system: system/run <data folder> <output file>
+set -eu
+if [ "$#" -ne 2 ]; then
+    echo "usage: system/run <data folder> <output file>" >&2
+    exit 2
+fi
+HERE="$(cd "$(dirname "$0")" && pwd)"
+export PYTHONHASHSEED=0
+export PYTHONDONTWRITEBYTECODE=1
+PY=python3
+if ! "$PY" -c "" >/dev/null 2>&1; then PY=python; fi
+exec "$PY" -B "$HERE/main.py" "$1" "$2"
