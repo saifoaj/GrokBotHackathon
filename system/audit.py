@@ -281,7 +281,7 @@ class Auditor:
         out.append("<h4>Our answer</h4><p>%s</p><p>Evidence: %s</p>" % (E(line["reason"]), E(", ".join(line["evidence"]))))
         if lab:
             out.append("<h4>Practice label</h4><p><b>%s</b> %s, customer %s, evidence %s</p><p>%s</p><ol>%s</ol>" % (
-                E(lab["decision"]), E(", ".join(lab["reason_codes"])), E(", ".join(lab["customer_record_ids"])),
+                E(lab["decision"]), E(", ".join(lab["reason_codes"])), E(", ".join(str(x) for x in lab["customer_record_ids"])),
                 E(", ".join(lab["evidence"])), E(lab.get("reference_reason") or ""),
                 "".join("<li>%s</li>" % E(p) for p in lab.get("path", []))))
             extra = sorted(set(line["evidence"]) - set(lab["evidence"]))
