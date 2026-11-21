@@ -56,6 +56,13 @@ class Names(unittest.TestCase):
 
 
 class Dates(unittest.TestCase):
+    def test_spaces_before_comma(self):
+        self.assertEqual(parse_date("April 15 , 1986"), (1986, 4, 15))
+        self.assertEqual(parse_date("April  15 ,  1986"), (1986, 4, 15))
+        self.assertEqual(parse_date("15 April , 1986"), (1986, 4, 15))
+        self.assertEqual(parse_date("April , 1986"), (1986, 4, None))
+        self.assertEqual(parse_date("April 15, 1986"), (1986, 4, 15))
+
     def test_formats(self):
         self.assertEqual(parse_date("19/05/2004"), (2004, 5, 19))
         self.assertEqual(parse_date("February 19, 2002"), (2002, 2, 19))
