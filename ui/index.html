@@ -952,6 +952,10 @@
       box-shadow: -20px 0 60px rgba(17, 22, 20, .12);
     }
 
+    .drawer.wide {
+      width: min(980px, 100%);
+    }
+
     .drawer.open {
       transform: none;
     }
@@ -1020,8 +1024,52 @@
 
     table.ref th {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    table.ref td {
+      vertical-align: middle;
+    }
+
+    h4.ref {
+      margin: 22px 0 8px;
+      font-size: 14px;
+    }
+
+    /* decision chips and reason-code pills, as in the results dashboard */
+    .chip {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 6px;
+      font: 600 11.5px var(--mono);
+      white-space: nowrap;
+    }
+
+    .chip.DIFFERENT_ENTITY {
+      background: var(--mint);
+      color: var(--teal);
+    }
+
+    .chip.SAME_ENTITY {
+      background: var(--rose);
+      color: var(--red);
+    }
+
+    .chip.REVIEW {
+      background: var(--sand);
+      color: var(--amber);
+    }
+
+    .rc {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: 500 11.5px var(--mono);
+      white-space: nowrap;
     }
 
     .code {
@@ -1373,7 +1421,8 @@
     }
 
     /* drawers: raw records and the reason-code reference */
-    function openDrawer(head, html) {
+    function openDrawer(head, html, wide = false) {
+      $("drawer").classList.toggle("wide", wide);
       $("drawer").innerHTML = `<header><h3>${head}</h3><button aria-label="Close">✕</button></header><div class="db scroll">${html}</div>`;
       $("drawer").querySelector("button").onclick = closeDrawer;
       $("drawer").setAttribute("aria-hidden", "false");
@@ -1389,8 +1438,10 @@
         : '<p class="muted">Not included in this export.</p>');
     });
     $("refbtn").onclick = () => openDrawer("Reason codes", `<p class="muted" style="margin-top:0">From the hackathon brief and POLICY.md. An alert is cleared only when every hit in it is DIFFERENT_ENTITY. When in doubt, REVIEW.</p>
-  <table class="ref"><tr><th>Decision</th><th>Meaning</th></tr>${Object.entries(DECISION_MEANING).map(([d, m]) => `<tr><td class="code">${d}</td><td>${esc(m)}</td></tr>`).join("")}</table>
-  <table class="ref" style="margin-top:18px"><tr><th>Decision</th><th>Reason code</th><th>Use it when</th></tr>${Object.entries(USE_WHEN).map(([c, u]) => `<tr><td class="code">${CODE_DECISION[c]}</td><td class="code">${c}</td><td>${esc(u)}</td></tr>`).join("")}</table>`);
+  <h4 class="ref">The three decisions</h4>
+  <table class="ref"><tr><th>Decision</th><th>Meaning</th></tr>${Object.entries(DECISION_MEANING).map(([d, m]) => `<tr><td><span class="chip ${d}">${d}</span></td><td>${esc(m)}</td></tr>`).join("")}</table>
+  <h4 class="ref">Reason codes</h4>
+  <table class="ref"><tr><th>Decision</th><th>Reason code</th><th>Use it when</th></tr>${Object.entries(USE_WHEN).map(([c, u]) => `<tr><td><span class="chip ${CODE_DECISION[c]}">${CODE_DECISION[c]}</span></td><td><span class="rc">${c}</span></td><td>${esc(u)}</td></tr>`).join("")}</table>`, true);
 
     /* keyboard: j/k move through the queue, 1 same, 2 different, 3 escalate, Esc closes the drawer */
     document.addEventListener("keydown", e => {
