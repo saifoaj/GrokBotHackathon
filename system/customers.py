@@ -15,10 +15,10 @@ from norm import find_dates, parse_date, phone_key
 
 NEGATIVE = re.compile(r"\b(reject\w*|expire\w*|fail\w*|declin\w*|unsuccessful|denied|not (?:approved|verified|"
                       r"passed|valid)|could not|unable|mismatch\w*|invalid|suspend\w*|revok\w*)\b", re.I)
-CAPS_STOP = {"ID", "DOB", "KYC", "PASSED", "OK", "AML", "PEP", "UK", "US", "USA", "UAE", "EU", "NA", "N/A", "SAR",
+CAPS_STOP = {"ID", "DOB", "KYC", "PASSED", "OK", "AML", "PEP", "UK", "US", "USA", "UAE", "EU", "SAR",
              "CDD", "EDD", "IDV", "APPROVED", "VERIFIED", "CLEARED", "CONFIRMED", "SUCCESS", "COMPLETE", "PASS",
              "II", "III", "IV", "NFC", "MRZ"}
-CAPS_TOKEN = re.compile(r"[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’\-]+")
+CAPS_TOKEN = re.compile(r"[A-ZÀ-ÖØ-ÞĀ-Ž][A-ZÀ-ÖØ-ÞĀ-Ž'’/\-]+")
 
 
 def is_person(entity_type):
@@ -39,8 +39,8 @@ def parse_kyc_note(note):
     # name: the longest run of capitalised words (the provider writes the legal name in capitals)
     runs, current, spans, start = [], [], [], None
     for match in re.finditer(r"\S+", text):
-        token = match.group(0).strip(",.;:()")
-        if CAPS_TOKEN.fullmatch(token) and token not in CAPS_STOP:
+        token = re.sub(r"['’][sS]$", "", match.group(0).strip(",.;:()[]\"")).strip(",.;:()")
+        if CAPS_TOKEN.fullmatch(token) and token not in CAPS_STOP and any(ch.isalpha() and ch.isupper() for ch in token):
             if not current:
                 start = match.start()
             current.append(token)
@@ -63,6 +63,9 @@ def parse_kyc_note(note):
             continue
         candidates.append(value)
     candidates = sorted(set(candidates))
+    if not candidates:  # a birth year alone ("DOB 1966")
+        candidates = sorted({v for s, e, v in find_dates(rest, years=True)
+                             if v[1] is None and not (created and v[0] == created[0] and False)})
     if len(candidates) == 1:
         dob = candidates[0]
     found = countries.find_in_text(rest)
@@ -273,7 +276,8 @@ class People:
                 if not parsed.get("approved"):
                     continue
                 facts.append({"id": n["note_id"], "date": parsed.get("date"), "name": parsed.get("name"),
-                              "dob": parsed.get("dob"), "country": parsed.get("country")})
+                              "dob": parsed.get("dob"), "country": parsed.get("country"),
+                              "countries": parsed.get("countries") or []})
         facts.sort(key=lambda f: (f["date"] or (0, 0, 0), f["id"]), reverse=True)
         return facts
 
@@ -325,8 +329,8 @@ class People:
                 if country:
                     tied.setdefault(country, set()).add(c["record_id"])
         for f in facts:
-            if f.get("country"):
-                tied.setdefault(f["country"], set()).add(f["id"])
+            for country in sorted(set([f.get("country")] + list(f.get("countries") or [])) - {None}):
+                tied.setdefault(country, set()).add(f["id"])
         for country, notes in self.lived_notes(person["records"]).items():
             tied.setdefault(country, set()).update(notes)
         pic["countries"] = {k: sorted(v) for k, v in sorted(tied.items())}

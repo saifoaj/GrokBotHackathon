@@ -26,8 +26,28 @@ AGE_PATTERNS = [
     re.compile(r"\bat\s+age\s+(\d{1,3})\b", re.I),
     re.compile(r"\bage\s*[:=]?\s*(\d{1,3})\b", re.I),
     re.compile(r"\b(\d{1,3})-year-old\b", re.I),
-    re.compile(r"\b(?:was|is|turned|reached)\s+(\d{1,3})\s*(?=[.,;:)]|$|when\b|at\b|in\b|by\b)", re.I),
+    re.compile(r"\b(?:was|is|turned|reached|then|at)\s+(\d{1,3})\s*(?=[.,;:)]|$|when\b|at\b|in\b|by\b)", re.I),
 ]
+BORN = re.compile(r"\b(?:born|date of birth|d\.?o\.?b\.?)\b\s*(?:on|in|:)?\s*", re.I)
+
+
+def born_date(text):
+    """A birth date stated in a sentence ("... was born on 17 July 1939", "DOB: 1955").
+
+    Slash dates are read for their year only: the provider's day/month order is not known.
+    """
+    for m in BORN.finditer(text or ""):
+        tail = text[m.end():m.end() + 40]
+        dates = find_dates(tail, years=True)
+        if dates and dates[0][0] <= 2:
+            s, e, d = dates[0]
+            if "/" in tail[s:e] or "." in tail[s:e]:
+                d = (d[0], None, None)
+            return d
+        sl = re.match(r"(\d{1,2})[/.](\d{1,2})[/.](\d{4})", tail)
+        if sl:
+            return (int(sl.group(3)), None, None)
+    return None
 _MONTHS = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September",
            "October", "November", "December"]
 
@@ -138,7 +158,12 @@ def picture(hit, data):
     notes = hit.get("profile_notes") or ""
     if not pic["dates"] and pic["is_person"] and notes:
         first = re.split(r"\n\s*\n", notes.strip(), maxsplit=1)[0]
-        years = None if first.lstrip().startswith("According to") else age_years(first)
+        news = first.lstrip().lower().startswith("according to")
+        born = None if news else born_date(first)
+        years = None if news or born else age_years(first)
+        if born:
+            pic["dates"] = [born]
+            pic["dob_origin"] = "profile_date"
         if years:
             pic["dates"] = [(y, None, None) for y in years]
             pic["dob_origin"] = "profile"

@@ -41,6 +41,8 @@ def years_text(dates):
 
 
 def hit_dob_phrase(h):
+    if h["dob_origin"] == "profile_date":
+        return "the hit's profile notes give its date of birth as %s" % years_text(h["dates"])
     if h["dob_origin"] == "profile":
         return "the hit's profile notes put its birth year at %s" % years_text(h["dates"])
     if h["dob_origin"] == "search":
