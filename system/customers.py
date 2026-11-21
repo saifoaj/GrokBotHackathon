@@ -369,7 +369,7 @@ class People:
                     continue
                 facts.append({"id": n["note_id"], "date": parsed.get("date"), "name": parsed.get("name"),
                               "dob": parsed.get("dob"), "country": parsed.get("country"),
-                              "countries": parsed.get("countries") or []})
+                              "countries": parsed.get("countries") or [], "note": True})
         facts.sort(key=lambda f: (f["date"] or (0, 0, 0), f["id"]), reverse=True)
         return facts
 
@@ -400,6 +400,7 @@ class People:
         latest = facts[0] if facts else None
         pic["latest_check"] = latest["id"] if latest else None
         # verified fields: newest approved check that gives each field
+        pic["dob_unread_src"] = None
         for field in ("name", "dob", "country"):
             pic["verified_" + field] = None
             pic["verified_%s_src" % field] = None
@@ -408,9 +409,17 @@ class People:
                     pic["verified_" + field] = f[field]
                     pic["verified_%s_src" % field] = f["id"]
                     break
+                if field == "dob" and f.get("note"):
+                    # A provider row may simply not record a date of birth, so an older check can
+                    # give it. But a note is a check whose date of birth we could not read from the
+                    # text: it is unknown, not absent, so no older or declared date stands in for it.
+                    pic["dob_unread_src"] = f["id"]
+                    break
         # dates of birth: verified wins; otherwise every declared one (all must be used)
         if pic["verified_dob"]:
             pic["dobs"] = [(pic["verified_dob"], [pic["verified_dob_src"]])]
+        elif pic["dob_unread_src"]:
+            pic["dobs"] = []
         else:
             declared = {}
             for c in records:
