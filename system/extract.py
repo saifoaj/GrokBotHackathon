@@ -188,18 +188,38 @@ def ages_at_dates(text, order=None, loose=False, subject_names=None):
         return []
     if not loose:
         return _anchored_ages(text, order, subject_names=subject_names)
+    return [(age, when, position) for age, when, position, _basis
+            in snippet_ages(text, order, subject_names)]
+
+
+def snippet_ages(text, order=None, subject_names=None):
+    """Loose ages for short one-person texts: list of (age, date, start, basis).
+
+    basis "anchored": an age phrase with a date in its own sentence (or an
+    "as of" date) - the same evidence the strict rules accept.
+    basis "fallback": our heuristic, not the policy's wording - an age phrase
+    whose date sits in another sentence, or a lone number taken as the age.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return []
+    strict = dict((position, (age, when)) for age, when, position
+                  in _anchored_ages(text, order, subject_names=subject_names))
     everywhere = _all_dates(text, order)
-    results = [(age, when if when is not None else _nearest(everywhere, position), position)
-               for age, when, position in _anchored_ages(text, order, keep_undated=True,
-                                                         subject_names=subject_names)]
-    results = [r for r in results if r[1] is not None]
+    results = []
+    for age, when, position in _anchored_ages(text, order, keep_undated=True, subject_names=subject_names):
+        if position in strict:
+            results.append((age, when, position, "anchored"))
+        else:
+            nearest = _nearest(everywhere, position)
+            if nearest is not None:
+                results.append((age, nearest, position, "fallback"))
     if results:
         return results
     lone = _lone_age(text, everywhere)
     if lone is not None:
         when = _nearest(everywhere, lone[1])
         if when is not None:
-            return [(lone[0], when, lone[1])]
+            return [(lone[0], when, lone[1], "fallback")]
     return []
 
 

@@ -27,7 +27,9 @@ from names import reorder_last_first, simple_text
 
 # years: possible birth years; month/day may be None.
 # how: dobs_field | profile_dob | profile_age | search_result
-HitDob = namedtuple("HitDob", "years month day source how text")
+# basis: "anchored" (the policy's own kinds of statement) or "fallback" (a
+# search-snippet age found only by our heuristic, see extract.snippet_ages)
+HitDob = namedtuple("HitDob", "years month day source how text basis")
 HitName = namedtuple("HitName", "raw parts kind")
 
 LISTING_PHRASES = {
@@ -87,8 +89,9 @@ def dob_text(years, month, day):
 class HitReader(object):
     """Builds HitFacts; holds the search-result index and date orders."""
 
-    def __init__(self, data):
+    def __init__(self, data, allow_fallback=True):
         self.data = data
+        self.allow_fallback = allow_fallback
         self.names = data.names
         self.search_by_query = {}
         for row in data.search_results:
@@ -174,7 +177,7 @@ class HitReader(object):
                 unparsed.append(value)
                 continue
             facts.dobs.append(HitDob((parsed[0],), parsed[1], parsed[2], facts.hit_id, "dobs_field",
-                                     dob_text((parsed[0],), parsed[1], parsed[2])))
+                                     dob_text((parsed[0],), parsed[1], parsed[2]), "anchored"))
         facts.coverage["dobs_unparsed"] = unparsed
         if facts.dobs:
             facts.dob_origin = "dobs field"
@@ -186,12 +189,13 @@ class HitReader(object):
         status, value = extract.anchored_dob(paragraph, order_text)
         if status == "anchored":
             facts.dobs.append(HitDob((value[0],), value[1], value[2], facts.hit_id, "profile_dob",
-                                     dob_text((value[0],), value[1], value[2])))
+                                     dob_text((value[0],), value[1], value[2]), "anchored"))
         subject = set(part for name in facts.names for part in name.parts)
         ages = extract.ages_at_dates(paragraph, order_text, subject_names=subject)
         for age, when, _position in ages:
             years = extract.birth_years_from_age(age, when)
-            facts.dobs.append(HitDob(years, None, None, facts.hit_id, "profile_age", dob_text(years, None, None)))
+            facts.dobs.append(HitDob(years, None, None, facts.hit_id, "profile_age", dob_text(years, None, None),
+                                     "anchored"))
         facts.coverage["profile_age_words"] = bool(extract.AGE_WORDS.search(paragraph))
         facts.coverage["profile_ages"] = len(ages)
         if facts.dobs:
@@ -219,14 +223,16 @@ class HitReader(object):
             if not tied & set(countries.find_in_text(snippet)):
                 continue
             facts.search_used.append(row["result_id"])
-            ages = extract.ages_at_dates(snippet, order_search, loose=True, subject_names=subject_all)
+            ages = extract.snippet_ages(snippet, order_search, subject_all)
+            if not self.allow_fallback:
+                ages = [a for a in ages if a[3] == "anchored"]
             if not ages:
                 unparsed_search.append(row["result_id"])
                 continue
-            age, when, _position = ages[0]
+            age, when, _position, basis = ages[0]
             years = extract.birth_years_from_age(age, when)
             facts.dobs.append(HitDob(years, None, None, row["result_id"], "search_result",
-                                     dob_text(years, None, None)))
+                                     dob_text(years, None, None), basis))
         facts.coverage["search_unparsed"] = unparsed_search
         if facts.dobs:
             facts.dob_origin = "search results"

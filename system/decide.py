@@ -24,6 +24,7 @@ CLEAR_ORDER = ["TEMPORAL_IMPOSSIBILITY", "DECEASED", "DOB_MISMATCH", "LOCATION_M
                "NAME_MISMATCH_VERIFIED", "ENTITY_TYPE_MISMATCH"]
 
 AGREE, CONTRADICT, NEITHER, UNKNOWN = "agree", "contradict", "neither", "unknown"
+FALLBACK_CONTRADICT = "contradict_fallback_only"
 MIN_AGE = 16
 
 Outcome = namedtuple("Outcome", "decision code sentences evidence trace")
@@ -124,6 +125,10 @@ def dob_result(customer, hit):
     if agreeing:
         return (AGREE, agreeing)
     if all(compare_dob(c, h) == CONTRADICT for c, _s, _l in customer.dobs for h in hit.dobs):
+        if all(h.basis == "fallback" for h in hit.dobs):
+            # Only our snippet heuristic says so, not a policy-worded statement:
+            # never clear on that alone (REVIEW instead).
+            return (FALLBACK_CONTRADICT, list(hit.dobs))
         return (CONTRADICT, list(hit.dobs))
     return (NEITHER, list(hit.dobs))
 
@@ -349,6 +354,12 @@ def decide_for_person(person, customer, hit, alert, rules):
             missing.append("the customer's date of birth %s is within a year of the hit's %s, so it neither "
                            "agrees nor contradicts" % (customer.dob_text(), join(h.text for h in hit.dobs)))
             settle.append("the listed person's full date of birth")
+            agree_evidence += customer.dob_sources() + search_ids
+        elif dob_status == FALLBACK_CONTRADICT:
+            missing.append("the customer's date of birth %s differs from the birth year %s read from %s only by a "
+                           "fallback rule, not from a stated age" % (
+                               customer.dob_text(), join(h.text for h in hit.dobs), join(search_ids)))
+            settle.append("a stated date of birth or age for the listed person")
             agree_evidence += customer.dob_sources() + search_ids
         if name_status == UNKNOWN and customer.verified_name is not None:
             missing.append("the customer's verified name %s has fewer than two real name parts" % cust_name)
