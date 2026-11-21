@@ -77,8 +77,20 @@ class Dates(unittest.TestCase):
         self.assertEqual(age_years("someone aged 45 in March 2019"), [1973, 1974])
         self.assertEqual(age_years("When questioned in January 2023, he was 46."), [1976, 1977])
         self.assertEqual(born_date("X was born on 17 July 1939."), (1939, 7, 17))
-        self.assertEqual(born_date("DOB: 6/20/1955"), (1955, None, None))   # order not stated: year only
-        self.assertEqual(born_date("DOB: 05/06/1955"), (1955, None, None))
+        self.assertEqual(born_date("DOB: 6/20/1955"), (1955, 6, 20))        # only month-first is possible
+        self.assertEqual(born_date("DOB: 05/06/1955"), (1955, None, None))  # both possible: year only
+        self.assertEqual(parse_date("05/03/79"), (1979, 3, 5))
+        self.assertEqual(parse_date("05/03/08"), (2008, 3, 5))
+
+    def test_title_case_kyc_name(self):
+        note = {"created_at": "2024-06-01", "text": "Greta Lindholm's Sweden passport was verified by Onfido on "
+                                                    "2024-06-01; born 1979-09-14."}
+        p = parse_kyc_note(note)
+        self.assertEqual(p["name"], "Greta Lindholm")
+        self.assertEqual(p["dob"], (1979, 9, 14))
+        note = {"created_at": "2024-06-01", "text": "Identity check passed for Greta Lindholm (date of birth "
+                                                    "1979-09-14) using a Sweden national ID, Veriff, 2024-06-01."}
+        self.assertEqual(parse_kyc_note(note)["name"], "Greta Lindholm")
         self.assertEqual(age_years("questioned, aged fifty-two, in May 2011"), [1958, 1959])
 
     def test_age_of_someone_else_is_ignored(self):

@@ -133,6 +133,11 @@ def parse_date(value):
     if re.fullmatch(r"\d{4}", text):
         y = int(text)
         return (y, None, None) if _valid(y, None, None) else None
+    short = re.fullmatch(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2})", text)
+    if short:  # day-first with a two-digit year: 05/03/79 is 1979, 05/03/08 is 2008
+        d, m, yy = (int(x) for x in short.groups())
+        y = 2000 + yy if yy <= 26 else 1900 + yy
+        return (y, m, d) if _valid(y, m, d) else None
     dates = find_dates(text)
     if len(dates) == 1:
         return dates[0][2]
