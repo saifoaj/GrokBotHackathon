@@ -305,8 +305,12 @@ def perturb(source, target, categories, seed=7):
 # ---------------------------------------------------------------- checking
 
 def run_system(data, output):
-    subprocess.check_call([os.path.join(ROOT, "system", "run"), data, output],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if os.name == "nt":  # Windows cannot execute the shell entry point; run what it runs
+        cmd = [sys.executable, "-B", os.path.join(ROOT, "system", "main.py"), data, output]
+        env = dict(os.environ, PYTHONHASHSEED="0", PYTHONDONTWRITEBYTECODE="1")
+    else:
+        cmd, env = [os.path.join(ROOT, "system", "run"), data, output], None
+    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     with open(output, encoding="utf-8") as handle:
         return dict((row["hit_id"], row) for row in (json.loads(line) for line in handle if line.strip()))
 
