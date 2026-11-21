@@ -1,0 +1,19 @@
+#!/bin/sh
+# Screening review system: system/run <data folder> <output file>
+# Reads only the data folder, writes only the output file.
+set -eu
+
+if [ "$#" -ne 2 ]; then
+    echo "usage: system/run <data folder> <output file>" >&2
+    exit 2
+fi
+
+# Find our own files relative to this script, not the working directory.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# Backup only: the Python code must not depend on hash order anyway.
+export PYTHONHASHSEED=0
+# Do not write .pyc caches anywhere.
+export PYTHONDONTWRITEBYTECODE=1
+
+exec python3 -B -s "$HERE/screen.py" "$1" "$2"

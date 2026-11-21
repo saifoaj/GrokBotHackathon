@@ -1,0 +1,11 @@
+CLAUDE.md
+.DS_Store
+
+# Data and secrets: never commit
+dev/
+*.xlsx
+.env
+
+# Python caches
+__pycache__/
+*.pyc
