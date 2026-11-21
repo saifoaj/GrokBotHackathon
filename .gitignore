@@ -1,0 +1,9 @@
+dev/
+*.xlsx
+.env
+*.key
+.cache/
+__pycache__/
+*.pyc
+debug/
+.DS_Store
