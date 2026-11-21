@@ -303,7 +303,9 @@ class People:
         if linked:
             anchors = sorted(linked)
             if len(anchors) > 1:
-                fit = [cid for cid in anchors if self.fits(self.data.customer[cid], screened, use_place=False)]
+                # POLICY principle 2: the screened details pick between them "as in a search without a
+                # link" -- name, date of birth, country and city all apply.
+                fit = [cid for cid in anchors if self.fits(self.data.customer[cid], screened, use_place=True)]
                 if fit:
                     anchors = fit
         else:
