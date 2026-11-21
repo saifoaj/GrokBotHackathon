@@ -160,15 +160,22 @@ def build(folder):
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>FinCI results</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--muted:#667085;--line:#e4e7ec;--ok:#1f7a3a;--okbg:#e7f6ec;
---bad:#b42318;--badbg:#fdecea;--warn:#a15c07;--warnbg:#fff4e0;--un:#475467;--unbg:#eef0f3;--accent:#2f5bea}
-@media (prefers-color-scheme:dark){:root{--bg:#12151b;--card:#1a1f27;--ink:#e6e9ef;--muted:#98a2b3;--line:#2b323d;
---ok:#57c27a;--okbg:#17321f;--bad:#f2766b;--badbg:#3a1c1a;--warn:#f0b459;--warnbg:#3a2a12;--un:#b4bcc8;--unbg:#262c35;
---accent:#7c9cff}}
-*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+:root{--bg:#0b0b0c;--card:#111113;--ink:#ededed;--muted:#8b8b90;--line:#26262a;--ok:#8fd19e;--okbg:#14261a;
+--bad:#f08b8b;--badbg:#2c1517;--warn:#f1a25c;--warnbg:#2b1d12;--un:#b4b4ba;--unbg:#1c1c20;--accent:#e8e8e8;
+--mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 Inter,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+.chip{display:inline-block;font:600 12.5px/1 var(--mono);letter-spacing:.02em;padding:6px 10px;border-radius:7px;white-space:nowrap}
+.chip.DIFFERENT_ENTITY{background:var(--okbg);color:var(--ok)}.chip.SAME_ENTITY{background:var(--badbg);color:var(--bad)}
+.chip.REVIEW{background:var(--warnbg);color:var(--warn)}.chip.none{background:var(--unbg);color:var(--muted)}
+.code{font:12px var(--mono);color:var(--muted)}
+.legend{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.legend h2{font-size:17px;margin:0;padding:14px 18px 10px;font-weight:600}
+.legend table{width:100%;border-collapse:collapse}.legend th{font:500 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+color:var(--muted);text-align:left;padding:10px 18px;border-top:1px solid var(--line)}
+.legend td{padding:12px 18px;border-top:1px solid var(--line);vertical-align:middle}.legend td.n{font:600 15px var(--mono);text-align:right;white-space:nowrap}
 header{padding:16px 20px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:2}
 h1{font-size:18px;margin:0 0 8px} .tabs button{border:1px solid var(--line);background:var(--bg);color:var(--ink);
-padding:6px 12px;border-radius:6px;margin-right:6px;cursor:pointer}.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+padding:6px 12px;border-radius:6px;margin-right:6px;cursor:pointer}.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 main{display:grid;grid-template-columns:minmax(380px,46%) 1fr;gap:16px;padding:16px 20px}
 @media (max-width:900px){main{grid-template-columns:1fr}}
 .cards{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.card{background:var(--card);border:1px solid var(--line);
@@ -177,7 +184,8 @@ border-radius:8px;padding:8px 12px;min-width:92px}.card b{display:block;font-siz
 border:1px solid var(--line);border-radius:6px;padding:5px 8px}
 .list{background:var(--card);border:1px solid var(--line);border-radius:8px;max-height:calc(100vh - 290px);overflow:auto}
 table.l{width:100%;border-collapse:collapse}table.l td,table.l th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}
-table.l th{position:sticky;top:0;background:var(--card);font-size:12px;color:var(--muted)}
+table.l th{position:sticky;top:0;background:var(--card);font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header,.card,.list,.detail,.box{border-radius:12px}
 table.l tr{cursor:pointer}table.l tr:hover td{background:var(--bg)}table.l tr.sel td{background:var(--unbg)}
 .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
 .pass{background:var(--okbg);color:var(--ok)}.fail{background:var(--warnbg);color:var(--warn)}.unsafe{background:var(--badbg);color:var(--bad)}
@@ -193,9 +201,11 @@ table.l tr{cursor:pointer}table.l tr:hover td{background:var(--bg)}table.l tr.se
 .audit .person{border:1px dashed var(--line);padding:6px;margin:6px 0;border-radius:6px}
 .muted{color:var(--muted)} .empty{color:var(--muted);padding:30px;text-align:center}
 .bars{display:flex;flex-direction:column;gap:3px;margin:4px 0 10px}.bar{display:flex;align-items:center;gap:6px;font-size:12px}
-.bar i{display:block;height:10px;background:var(--accent);border-radius:3px}
+.bar i{display:block;height:10px;background:var(--ok);border-radius:3px}
+.legend td:nth-child(2){min-width:220px}
 </style></head><body>
 <header><h1>FinCI results: what went in, what came out, what passed, what failed</h1><div class="tabs" id="tabs"></div></header>
+<div style="padding:16px 20px 0"><div class="legend" id="legend"></div></div>
 <main><section><div class="cards" id="cards"></div><div id="cases"></div><div class="filters">
 <select id="fStatus"><option value="">All results</option><option value="unsafe">Unsafe clears</option>
 <option value="fail">Other misses</option><option value="pass">Passed</option><option value="unlabelled">No expected answer</option></select>
@@ -212,7 +222,15 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function tabs(){ $("tabs").innerHTML = DATA.map((d,i)=>`<button class="${i===cur?"on":""}" data-i="${i}">${esc(d.summary.name)} (${d.summary.hits})</button>`).join("");
   $("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;sel=null;render();}); }
-function cards(){ const s=DATA[cur].summary; const c=(v,l,cls)=>`<div class="card"><b class="${cls||""}">${v}</b><span>${l}</span></div>`;
+const chip = d => d ? `<span class="chip ${esc(d)}">${esc(d)}</span>` : `<span class="chip none">no answer</span>`;
+const MEANING = {DIFFERENT_ENTITY:"The evidence shows the hit is a different person or company. The hit is cleared.",
+  SAME_ENTITY:"The evidence shows the hit is the customer. The alert goes to the compliance team.",
+  REVIEW:"The evidence cannot settle it. A person looks at it."};
+function legend(){ const rows=DATA[cur].rows; const lab=rows.filter(r=>r.want);
+  $("legend").innerHTML = `<h2>The three decisions</h2><table><tr><th>Decision</th><th>Meaning</th><th style="text-align:right">We said</th>${lab.length?'<th style="text-align:right">Expected</th>':""}</tr>`+
+   Object.keys(MEANING).map(d=>`<tr><td>${chip(d)}</td><td>${MEANING[d]}</td><td class="n">${rows.filter(r=>r.got===d).length}</td>${
+     lab.length?`<td class="n">${lab.filter(r=>r.want===d).length}</td>`:""}</tr>`).join("")+`</table>`; }
+function cards(){ legend(); const s=DATA[cur].summary; const c=(v,l,cls)=>`<div class="card"><b class="${cls||""}">${v}</b><span>${l}</span></div>`;
   $("cards").innerHTML = c(s.hits,"hits fed in")+(s.labelled?c(s.labelled,"with expected answer")+c(s.pass,"passed")+
    c(s.fail,"other misses")+c(s.unsafe,"unsafe clears")+c(s.score,"decision score")+c(s.cost,"cost"):"")+
    Object.entries(s.decisions).map(([k,v])=>c(v,k.replace("_ENTITY","").toLowerCase())).join("");
@@ -228,8 +246,8 @@ function list(){ const fs=$("fStatus").value,fg=$("fGot").value,fc=$("fCase").va
   const rows=DATA[cur].rows.filter(r=>(!fs||r.status===fs)&&(!fg||r.got===fg)&&(!fc||r.case===fc)&&
    (!ft||JSON.stringify(r).toLowerCase().includes(ft))).sort((a,b)=>order[a.status]-order[b.status]||a.id.localeCompare(b.id));
   $("rows").innerHTML = rows.slice(0,1500).map(r=>`<tr data-id="${r.id}" class="${r.id===sel?"sel":""}"><td><span class="pill ${r.status}">${r.status}</span></td>
-   <td><b>${esc(r.id)}</b><br><span class="muted">${esc(r.name)}</span></td><td>${esc(r.want||"-")}<br><span class="muted">${esc(r.want_codes)}</span></td>
-   <td>${esc(r.got)}<br><span class="muted">${esc(r.code)}</span></td><td class="muted">${esc(r.case)}</td></tr>`).join("") ||
+   <td><b>${esc(r.id)}</b><br><span class="muted">${esc(r.name)}</span></td><td>${r.want?chip(r.want):'<span class="muted">-</span>'}<br><span class="code">${esc(r.want_codes)}</span></td>
+   <td>${chip(r.got)}<br><span class="code">${esc(r.code)}</span></td><td class="muted">${esc(r.case)}</td></tr>`).join("") ||
    `<tr><td colspan=5 class="empty">No hits match these filters.</td></tr>`;
   $("rows").querySelectorAll("tr[data-id]").forEach(t=>t.onclick=()=>{sel=t.dataset.id;list();detail();}); }
 function kv(pairs){return `<div class="kv">`+pairs.map(([k,v])=>`<div>${esc(k)}</div><div>${esc(v||"-")}</div>`).join("")+`</div>`;}
@@ -240,8 +258,8 @@ function detail(){ const r=DATA[cur].rows.find(x=>x.id===sel); if(!r){return;}
   <div class="grid"><div class="box"><h3>Fed in: customer side</h3>${kv([["Screened as",r.screened],["Route",r.route],["People found",r.people],
    ["Record used",r.record],["Verified name",r.c_name],["Birth date(s)",r.c_dob],["Countries",r.c_countries]])}</div>
   <div class="box"><h3>Fed in: watchlist hit</h3>${kv([["Hit name",r.name],["Birth date(s)",r.h_dob],["Birth date from",r.h_dob_from],["Countries",r.h_countries]])}</div>
-  <div class="box"><h3>Came out</h3>${kv([["Decision",r.got],["Reason code",r.code],["Customer",r.record]])}</div>
-  <div class="box"><h3>Expected</h3>${kv([["Decision",r.want||"(no expected answer)"],["Accepted codes",r.want_codes],["Case",r.case]])}</div></div>
+  <div class="box"><h3>Came out</h3><p>${chip(r.got)}</p>${kv([["Reason code",r.code],["Customer",r.record]])}</div>
+  <div class="box"><h3>Expected</h3><p>${r.want?chip(r.want):chip("")}</p>${kv([["Accepted codes",r.want_codes],["Case",r.case]])}</div></div>
   <h3 class="muted" style="font-size:12px;text-transform:uppercase">Every step</h3><div class="audit">${d||"<p class='muted'>Step detail not included for this hit.</p>"}</div>`;
   const det=$("detail").querySelector(".audit details"); if(det) det.open=true; }
 function render(){tabs();cards();list();$("detail").innerHTML='<div class="empty">Pick a hit on the left to see what went in, what came out and why.</div>';}
