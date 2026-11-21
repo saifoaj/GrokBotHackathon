@@ -142,8 +142,8 @@ different `PYTHONHASHSEED` values gives a byte-identical output file.
 
 ### 1. Clear mismatch: `H-13E1CF` -> DIFFERENT_ENTITY, TEMPORAL_IMPOSSIBILITY
 
-* Route: `account_ref ACC-B3E19A` -> `CUS-364225`; the same document number on approved checks
-  merges `CUS-851234` into the same person.
+* Route: `account_ref ACC-B3E19A` -> `CUS-364225`; the same phone number and the same full date
+  of birth merge `CUS-851234` into the same person.
 * Customer: newest approved check `KYC-358C76` gives date of birth 2007-08-21.
 * Hit "Abdul Rahman": the earliest dated report in its profile is 2020-01-08.
 * The customer was at most 13 then, so the hit cannot be them. The countries also differ
