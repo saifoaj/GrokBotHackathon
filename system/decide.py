@@ -162,9 +162,15 @@ def compare(pic, h, rules, screened_at):
     if name_match:
         facts.append("The customer's name %s agrees with the hit's name %s." % (name_match[0], name_match[1]))
 
-    base_ev = list(pic["records"])
-    if pic["latest_check"]:
-        base_ev.append(pic["latest_check"])
+    # Evidence for a match or a review: the records that tie the shared country (a customer record,
+    # an identity check or a note saying where they lived), plus the birth-date source when the dates
+    # agree. Without a shared country, the customer records and the newest check that was read.
+    shared_src = sorted({s for c in shared for s in pic["countries"].get(c, [])})
+    base_ev = list(shared_src)
+    if not base_ev:
+        base_ev = list(pic["records"])
+        if pic["latest_check"]:
+            base_ev.append(pic["latest_check"])
     location_conflict = bool(cset and hset and not shared and all_known)
     if location_conflict:
         facts.append("The customer is linked only to %s but the hit is linked only to %s; a country difference "
