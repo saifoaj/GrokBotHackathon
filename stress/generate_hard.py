@@ -75,7 +75,7 @@ def t_soft_failed_note(w):
         "Veriff: the selfie did not match the document presented for %s, born %s." % (other, dob),
         "Onboarding: %s (DOB %s) abandoned the Sumsub identity check before uploading a document." % (other, dob),
         "Awaiting documents from %s, born %s; Onfido session timed out." % (other, dob)]),
-        when="2025-01-15")
+        when="2025-01-15", approved=False)
     h = w.hit(name_of(p), countries=[p["country"]])
     w.alert([h], **screened(p), **link_kwargs(p, "email"))
     w.label(h, "REVIEW", ["INSUFFICIENT_DATA"], [p["cus"]["record_id"]], "trap_soft_failed_note",
@@ -197,7 +197,7 @@ def m_search_age_in_words(w):
     h = w.hit(name, countries=[country], category="PEP")
     w.alert([h], **screened(p), **link_kwargs(p))
     w.label(h, "DIFFERENT_ENTITY", ["DOB_MISMATCH"], [p["cus"]["record_id"]], "search_age_in_words",
-            "The qualifying search result (%s) puts the hit's birth about 14 years before the customer's." % sid)
+            "The qualifying search result (%s) puts the hit's birth about 14 years before the customer's." % sid, sr=[sid])
 
 
 def m_search_no_age(w):
@@ -247,6 +247,7 @@ def main(argv):
         for case in CASES:
             case(w)
     g.noise(w, noise_count - noise_count // 2)
+    w.finish()
     os.makedirs(out, exist_ok=True)
     for name, rows in w.t.items():
         rows = list(rows)

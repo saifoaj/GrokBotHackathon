@@ -11,6 +11,7 @@ all people, companies, notes and lists are invented. Deterministic (fixed seed).
 import json
 import os
 import random
+import re
 import sys
 
 RNG = random.Random(20261121)
@@ -72,6 +73,7 @@ class World:
         self.emails = set()
         self.phones = set()
         self.case_of = {}
+        self.note_ok = {}  # note id -> True when the note records a passed identity check
 
     # ---------------------------------------------------------- ids and names
     def uid(self, prefix, digits=False):
@@ -150,8 +152,9 @@ class World:
             "result": result, "checked_at": when})
         return kid
 
-    def note(self, email, text, channel="kyc", when="2024-06-01"):
+    def note(self, email, text, channel="kyc", when="2024-06-01", approved=None):
         nid = self.uid("NOTE")
+        self.note_ok[nid] = (channel == "kyc") if approved is None else approved
         self.t["notes"].append({"note_id": nid, "requester_email": email, "created_at": when, "channel": channel,
                                 "text": text})
         return nid
@@ -191,12 +194,107 @@ class World:
                                  "hit_ids": "; ".join(hit_ids) if string_ids else list(hit_ids)})
         return aid
 
-    def label(self, hit_id, decision, codes, records, case, why):
+    def label(self, hit_id, decision, codes, records, case, why, sr=None, ev=None):
+        """The intended outcome of a hit. Its evidence is filled in by finish(), once every record exists."""
         alert_id = next(h["alert_id"] for h in self.t["hits"] if h["hit_id"] == hit_id)
         self.t["practice_labels"].append({"hit_id": hit_id, "alert_id": alert_id, "decision": decision,
-                                          "reason_codes": codes, "customer_record_ids": records, "evidence": [],
-                                          "reference_reason": why, "path": ["stress case: " + case]})
+                                          "reason_codes": codes, "customer_record_ids": records, "evidence": ev,
+                                          "reference_reason": why, "path": ["stress case: " + case],
+                                          "_sr": list(sr or [])})
         self.case_of[hit_id] = case
+
+    # ---------------------------------------------------------- intended evidence (POLICY.md principle 9)
+    def finish(self):
+        """Fill every label's evidence with the records that should decide it, as POLICY.md asks:
+        the deciding records only, customer side, plus a search result when it gave the hit's birth date."""
+        cus = {c["record_id"]: c for c in self.t["customers"]}
+        apps = {}
+        for o in self.t["onboarding"]:
+            apps.setdefault(o["customer_id"], []).append(o["kyc_applicant_id"])
+        checks = {}
+        for k in self.t["kyc_checks"]:
+            if k["result"] == "approved":
+                checks.setdefault(k["applicant_id"], []).append(k)
+        notes = {}
+        for n in self.t["notes"]:
+            if n["channel"] == "kyc" and self.note_ok.get(n["note_id"]):
+                notes.setdefault(n["requester_email"].lower(), []).append(n)
+
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "system"))
+        import countries as cn  # the policy's country rules (codes, nationality words, territories)
+        hits = {h["hit_id"]: h for h in self.t["hits"]}
+        all_notes = {}
+        for n in self.t["notes"]:
+            all_notes.setdefault(n["requester_email"].lower(), []).append(n)
+
+        def hit_countries(h):
+            out = set()
+            for f in ("countries", "nationality", "citizenship"):
+                out.update(cn.canon(v) for v in h.get(f) or [])
+            for a in h.get("addresses") or []:
+                out.add(cn.canon(re.sub(r"\[[^\]]*\]", "", a).strip().split(",")[-1]))
+            if h.get("place_of_birth"):
+                out.add(cn.canon(h["place_of_birth"].split(",")[-1]))
+            return out - {None}
+
+        def shared_country_sources(cids, hit_id):
+            ties = {}
+            for cid in cids:
+                c = cus[cid]
+                for f in ("residence_country", "nationality"):
+                    if cn.canon(c.get(f)):
+                        ties.setdefault(cn.canon(c.get(f)), set()).add(cid)
+                for app in apps.get(cid, []):
+                    for k in checks.get(app, []):
+                        if cn.canon(k.get("document_country")):
+                            ties.setdefault(cn.canon(k["document_country"]), set()).add(k["check_id"])
+                for n in all_notes.get((c["email"] or "").lower(), []):
+                    if n["channel"] == "kyc" and not self.note_ok.get(n["note_id"]):
+                        continue
+                    for country in cn.find_in_text(n["text"]):
+                        ties.setdefault(country, set()).add(n["note_id"])
+            shared = set(ties) & hit_countries(hits[hit_id])
+            return sorted({i for country in shared for i in ties[country]})
+
+        def facts(cids):  # approved checks and KYC notes of the person, newest first
+            out = []
+            for cid in cids:
+                for app in apps.get(cid, []):
+                    out += [(k["checked_at"], k["check_id"]) for k in checks.get(app, [])]
+                out += [(n["created_at"], n["note_id"]) for n in notes.get((cus[cid]["email"] or "").lower(), [])]
+            return sorted(set(out), reverse=True)
+
+        for lab in self.t["practice_labels"]:
+            sr = lab.pop("_sr")
+            if lab["evidence"] is not None:
+                lab["evidence"] = sorted(set(lab["evidence"]))
+                continue
+            cids = [c for c in lab["customer_record_ids"] if c in cus]
+            if not cids:
+                lab["evidence"] = []
+                continue
+            f = facts(cids)
+            src = [f[0][1]] if f else []
+            dob_src = src or [c for c in cids if cus[c].get("dob")]
+            code = lab["reason_codes"][0]
+            if code in ("DOB_MISMATCH", "TEMPORAL_IMPOSSIBILITY"):
+                ev = dob_src + sr
+            elif code == "NAME_MISMATCH_VERIFIED":
+                ev = src
+            elif code == "LOCATION_MISMATCH":
+                ev = cids + [i for _, i in f]
+            elif code in ("ENTITY_TYPE_MISMATCH", "DECEASED"):
+                ev = cids[:1]
+            else:
+                # A match or a review cites what ties the shared country (a record, a check, a note);
+                # with no shared country, the person's records and their newest check.
+                tied = shared_country_sources(cids, lab["hit_id"])
+                base = tied or (cids + src)
+                if code in ("NAME_DOB_LOCATION_MATCH", "NAME_DOB_MATCH"):
+                    ev = base + dob_src + sr
+                else:  # NAME_LOCATION_MATCH, INSUFFICIENT_DATA
+                    ev = base
+            lab["evidence"] = sorted(set(ev))
 
 
 # ------------------------------------------------------------------ building blocks
@@ -462,7 +560,8 @@ def c_rejected_note(w):
         "Veriff could not verify %s %s: the passport had expired. Customer asked to resubmit." % (
             other_first.upper(), other_last.upper()),
         "Onfido check FAILED for %s %s on 2024-02-02 (document unreadable)." % (other_first.upper(),
-                                                                              other_last.upper())]))
+                                                                              other_last.upper())]),
+        approved=False)
     h = w.hit("%s %s" % (p["first"], p["last"]), countries=[p["country"]])
     w.alert([h], **screened(p), **link_kwargs(p, "email"))
     w.label(h, "REVIEW", ["INSUFFICIENT_DATA"], [p["cus"]["record_id"]], "rejected_note",
@@ -604,10 +703,11 @@ def c_search(w, agree):
     w.alert([h], **screened(p), **link_kwargs(p))
     if agree:
         w.label(h, "SAME_ENTITY", ["NAME_DOB_LOCATION_MATCH", "NAME_DOB_MATCH"], [p["cus"]["record_id"]],
-                "search_agree", "Only the result with the hit's listing phrase and country counts: it agrees.")
+                "search_agree", "Only the result with the hit's listing phrase and country counts: it agrees.",
+                sr=[sid])
     else:
         w.label(h, "DIFFERENT_ENTITY", ["DOB_MISMATCH"], [p["cus"]["record_id"]], "search_mismatch",
-                "The qualifying search result puts the hit's birth 11-12 years after the customer's.")
+                "The qualifying search result puts the hit's birth 11-12 years after the customer's.", sr=[sid])
 
 
 def c_search_only_namesakes(w):
@@ -688,14 +788,16 @@ def c_search_ambiguous(w, same):
         h = w.hit("%s %s" % (first, last), countries=[far])
         w.alert([h], name="%s %s" % (first, last), country=country)
         w.label(h, "DIFFERENT_ENTITY", ["LOCATION_MISMATCH"], ["AMBIGUOUS"], "search_two_people_same",
-                "Two people fit; both are cleared on location, so the decision stands with AMBIGUOUS.")
+                "Two people fit; both are cleared on location, so the decision stands with AMBIGUOUS.",
+                ev=[a["record_id"], b["record_id"]])
     else:
         other_first, other_last = w.person_name()
-        w.check(apps_a[a["record_id"]], "%s %s" % (other_first, other_last), iso(1970, 1, 1), country)
+        k = w.check(apps_a[a["record_id"]], "%s %s" % (other_first, other_last), iso(1970, 1, 1), country)
         h = w.hit("%s %s" % (first, last), countries=[country])
         w.alert([h], name="%s %s" % (first, last), country=country)
         w.label(h, "REVIEW", ["AMBIGUOUS_CUSTOMER_RECORD"], ["AMBIGUOUS"], "search_two_people_differ",
-                "Two people fit; one is cleared on verified name, the other cannot be decided.")
+                "Two people fit; one is cleared on verified name, the other cannot be decided.",
+                ev=[a["record_id"], b["record_id"], k])
 
 
 def c_nobody_fits(w):
@@ -812,6 +914,7 @@ def main(argv):
         for case in CASES:
             case(w)
     noise(w, noise_count - noise_count // 2)
+    w.finish()
     os.makedirs(out, exist_ok=True)
     keys = {"alerts": "alert_id", "hits": "hit_id", "customers": "record_id", "accounts": "account_id",
             "onboarding": "kyc_applicant_id", "kyc_checks": "check_id", "notes": "note_id",
