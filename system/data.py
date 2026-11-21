@@ -9,6 +9,7 @@ import json
 import os
 import sys
 
+import dates
 from names import NameRules
 
 
@@ -81,6 +82,20 @@ class Data(object):
         self.notes = load_jsonl(folder, "notes.jsonl", ["note_id"])
         self.search_results = load_jsonl(folder, "search_results.jsonl", ["result_id"])
         self.names = NameRules.load(folder)
+
+        # Numeric date order of each source, learned from its own dates
+        # (06/01/1998 is read by the source's order, or year-only if unknown).
+        self.date_orders = {
+            "customers": dates.detect_order(row.get("dob") for row in self.customers),
+            "kyc": dates.detect_order(row.get("verified_dob") for row in self.kyc_checks),
+            "notes": dates.detect_order(row.get("text") for row in self.notes),
+            "alerts": dates.detect_order((row.get("customer") or {}).get("dob") for row in self.alerts),
+            "hit_fields": dates.detect_order(
+                value for row in self.hits
+                for value in list(row.get("dobs") or []) + [row.get("deceased_date")]),
+            "hit_text": dates.detect_order(row.get("profile_notes") for row in self.hits),
+            "search": dates.detect_order(row.get("snippet") for row in self.search_results),
+        }
 
         self.alert_by_id = {row["alert_id"]: row for row in self.alerts}
         self.customer_by_id = {row["record_id"]: row for row in self.customers}

@@ -2,8 +2,13 @@
 
 A date is a tuple (year, month, day) where month and day may be None.
 Unknown parts stay unknown: they never contradict anything.
-Slash and dot dates are day-first (DD/MM/YYYY), the bank's convention,
-unless the second number cannot be a month.
+
+Numeric dates such as 06/01/1998 are ambiguous. Each source's order is
+learned from the source itself (detect_order): "dmy" when some of its dates
+can only be day-first and none can only be month-first, "mdy" the other way
+round, None when it has no evidence or mixes both. With order None an
+ambiguous date keeps only its year (principle 7: unknown stays unknown).
+A date whose first or second number is above 12 can be read only one way.
 """
 
 import calendar
@@ -44,30 +49,71 @@ def make(year, month=None, day=None):
     return (year, month, day)
 
 
-def _day_first(first, second, year):
+_NUMERIC = re.compile(r"(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})(?!\d)")
+
+
+def numeric_date(first, second, year, order):
+    """Read d/d/yyyy using the source's order; ambiguous + unknown order -> year only."""
     first, second = int(first), int(second)
-    if second > 12 and first <= 12:
+    if first > 12 and second > 12:
+        return None
+    if first > 12:
+        return make(year, second, first)
+    if second > 12:
         return make(year, first, second)
-    return make(year, second, first)
+    if first == second:
+        return make(year, first, second)
+    if order == "dmy":
+        return make(year, second, first)
+    if order == "mdy":
+        return make(year, first, second)
+    return make(year)
+
+
+def detect_order(texts, minimum=3):
+    """Learn a source's numeric date order from its own unambiguous dates.
+
+    Returns "dmy", "mdy" or None (no evidence, or both orders seen).
+    Counts only, so the result never depends on the order of the texts.
+    """
+    day_first = month_first = 0
+    for text in texts:
+        if not isinstance(text, str):
+            continue
+        for match in _NUMERIC.finditer(text):
+            first, second = int(match.group(1)), int(match.group(2))
+            if first > 12 >= second:
+                day_first += 1
+            elif second > 12 >= first:
+                month_first += 1
+    if day_first >= minimum and month_first == 0:
+        return "dmy"
+    if month_first >= minimum and day_first == 0:
+        return "mdy"
+    return None
 
 
 def _month(name):
     return MONTH_NAMES.get(name.lower().rstrip("."))
 
 
-# Patterns used both for whole fields and for free text, most specific first.
-_TEXT_PATTERNS = [
-    (re.compile(r"(?<!\d)(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)"),
-     lambda m: make(m.group(1), m.group(2), m.group(3))),
-    (re.compile(r"(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})(?!\d)"),
-     lambda m: _day_first(m.group(1), m.group(2), m.group(3))),
-    (re.compile(r"(?<![\w])(\d{1,2})" + ORD + r"(?:\s+of)?[\s\-]+" + MON + r"\.?,?[\s\-]+(\d{4})(?!\d)", re.I),
-     lambda m: make(m.group(3), _month(m.group(2)), m.group(1))),
-    (re.compile(r"(?<![\w])" + MON + r"\.?[\s\-]+(\d{1,2})" + ORD + r",?\s+(\d{4})(?!\d)", re.I),
-     lambda m: make(m.group(3), _month(m.group(1)), m.group(2))),
-    (re.compile(r"(?<![\w])" + MON + r"\.?,?\s+(?:of\s+)?(\d{4})(?!\d)", re.I),
-     lambda m: make(m.group(2), _month(m.group(1)))),
-]
+def _text_patterns(order):
+    """Patterns used both for whole fields and for free text, most specific first."""
+    return [
+        (re.compile(r"(?<!\d)(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)"),
+         lambda m: make(m.group(1), m.group(2), m.group(3))),
+        (_NUMERIC,
+         lambda m: numeric_date(m.group(1), m.group(2), m.group(3), order)),
+        (re.compile(r"(?<![\w])(\d{1,2})" + ORD + r"(?:\s+of)?[\s\-]+" + MON + r"\.?,?[\s\-]+(\d{4})(?!\d)", re.I),
+         lambda m: make(m.group(3), _month(m.group(2)), m.group(1))),
+        (re.compile(r"(?<![\w])" + MON + r"\.?[\s\-]+(\d{1,2})" + ORD + r",?\s+(\d{4})(?!\d)", re.I),
+         lambda m: make(m.group(3), _month(m.group(1)), m.group(2))),
+        (re.compile(r"(?<![\w])" + MON + r"\.?,?\s+(?:of\s+)?(\d{4})(?!\d)", re.I),
+         lambda m: make(m.group(2), _month(m.group(1)))),
+    ]
+
+
+_PATTERNS = {order: _text_patterns(order) for order in ("dmy", "mdy", None)}
 
 # Extra forms accepted only when they are the whole field.
 _FIELD_PATTERNS = [
@@ -77,26 +123,29 @@ _FIELD_PATTERNS = [
 ]
 
 
-def parse_date(value):
-    """Parse a whole date field. Returns (year, month, day) or None."""
+def parse_date(value, order=None):
+    """Parse a whole date field. Returns (year, month, day) or None.
+
+    order is the source's numeric date order ("dmy", "mdy" or None).
+    """
     if not isinstance(value, str):
         return None
     text = value.strip()
     if not text:
         return None
-    for pattern, build in _TEXT_PATTERNS + _FIELD_PATTERNS:
+    for pattern, build in _PATTERNS[order] + _FIELD_PATTERNS:
         match = pattern.fullmatch(text)
         if match:
             return build(match)
     # A field like "1985-09-12T00:00:00" or "12 Sep 1985 (approx)": use the
     # single date inside it if there is exactly one.
-    found = find_dates(text)
+    found = find_dates(text, order)
     if len(found) == 1:
         return found[0][2]
     return None
 
 
-def find_dates(text):
+def find_dates(text, order=None):
     """All dates written inside free text: list of (start, end, date).
 
     Overlapping matches keep the earliest, then longest. Sorted by position.
@@ -104,7 +153,7 @@ def find_dates(text):
     if not isinstance(text, str):
         return []
     matches = []
-    for priority, (pattern, build) in enumerate(_TEXT_PATTERNS):
+    for priority, (pattern, build) in enumerate(_PATTERNS[order]):
         for match in pattern.finditer(text):
             value = build(match)
             if value is not None:

@@ -22,6 +22,7 @@ from collections import namedtuple
 
 import countries
 import dates
+import extract
 from data import normal_document, normal_email, normal_phone
 from names import simple_text
 
@@ -34,7 +35,8 @@ _LEVEL_ORDER = {VERIFIED: 0, DECLARED: 1, SCREENED: 2}
 # role: what the value is (full_name, residence, nationality, document, lived...)
 Fact = namedtuple("Fact", "field value level source role")
 
-Check = namedtuple("Check", "check_id date status name dob countries document kind")
+# dob_how: where the DOB came from (field, keyword, after_name, ten_year_rule, unattached, none)
+Check = namedtuple("Check", "check_id date status name dob countries document kind dob_how")
 
 
 def fact_sort_key(fact):
@@ -51,9 +53,6 @@ _NEGATIVE = re.compile(
 _IDENTITY = re.compile(
     r"\b(verif\w*|identity|passport|national id|id card|identity card|driv\w* licen[cs]e|"
     r"residence permit|kyc|document|registry|onfido|veriff|sumsub|persona|jumio|trulioo)\b", re.I)
-_DOB_KEY = re.compile(r"(?<![a-z])(d\.?\s?o\.?\s?b\.?|born|birth\s?date|date of birth|birthday)(?![a-z])", re.I)
-_YEAR_AFTER_KEY = re.compile(
-    r"(?<![a-z])(?:d\.?\s?o\.?\s?b\.?|born|birth\s?date|date of birth)(?![a-z])[^0-9]{0,20}?(?<!\d)(\d{4})(?![\d/\-]|\.\d)", re.I)
 _DOC_NUMBER = re.compile(
     r"\b(?:document|passport|licen[cs]e|id|card)\s+(?:number|no\.?|num\.?|#)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-]{3,})", re.I)
 _STOP_CAPS = frozenset(["DOB", "D.O.B", "ID", "KYC", "AML", "PEP", "UK", "US", "USA", "UAE", "EU",
@@ -108,50 +107,51 @@ def find_caps_name(text):
     return (" ".join(word for word, _s, _e in best), best[0][1], best[-1][2])
 
 
-def _plausible_birth(value, record_date):
-    """A date of birth lies at least 10 years before the note was written."""
-    return record_date is None or (value != record_date and value[0] <= record_date[0] - 10)
+def dob_from_note(text, record_date, order=None, name_end=None):
+    """The date of birth written in a verification note: (how, date).
 
-
-def _dob_from_text(text, record_date):
-    """The date of birth written in a verification note, or None.
-
-    Only dates at least 10 years before the note can be a birth date (the
-    other dates are the check date). If several remain, the one nearest to a
-    birth keyword (DOB, born, date of birth) wins; then the earliest in the text.
+    1. "keyword": the date attached to a birth keyword (DOB, born, birth date).
+       A keyword with no date near it gives ("unattached", None).
+    2. "after_name": no keyword, but a date in brackets right after the
+       person's name: "JACK COOPER (1951-09-10)".
+    3. "ten_year_rule": no keyword at all; the single date at least 10 years
+       before the note (the other dates are the check date).
+    ("none", None) when nothing qualifies.
     """
-    found = [(s, e, v) for s, e, v in dates.find_dates(text) if _plausible_birth(v, record_date)]
-    keys = [(m.start(), m.end()) for m in _DOB_KEY.finditer(text)]
-    if found:
-        if len(set(v for _s, _e, v in found)) == 1:
-            return found[0][2]
-        ranked = []
-        for position, (start, end, value) in enumerate(found):
-            distances = [start - k_end for _k, k_end in keys if k_end <= start]
-            distances += [k_start - end for k_start, _k in keys if k_start >= end]
-            ranked.append((min(distances) if distances else 10 ** 6, position, value))
-        ranked.sort()
-        return ranked[0][2]
-    match = _YEAR_AFTER_KEY.search(text)
-    if match:
-        value = dates.make(match.group(1))
-        if value is not None and _plausible_birth(value, record_date):
-            return value
-    return None
+    status, value = extract.anchored_dob(text, order, record_date)
+    if status == "anchored":
+        return ("keyword", value)
+    if status == "unattached":
+        return ("unattached", None)
+    if name_end is not None:
+        match = re.match(r"\s*[\(\[]([^\)\]]{4,30})[\)\]]", text[name_end:])
+        if match:
+            value = dates.parse_date(match.group(1), order)
+            if value is not None and (record_date is None or dates.sort_key(value) < dates.sort_key(record_date)):
+                return ("after_name", value)
+    found = [v for _s, _e, v in dates.find_dates(text, order)
+             if record_date is None or (v != record_date and v[0] <= record_date[0] - 10)]
+    distinct = sorted(set(found), key=dates.sort_key)
+    if len(distinct) == 1:
+        return ("ten_year_rule", distinct[0])
+    return ("none", None)
 
 
-def parse_check_note(note):
-    """A note that records an identity check, as a Check; else None."""
+def parse_check_note(note, order=None):
+    """A note that records an identity check, as a Check; else None.
+
+    order is the notes' numeric date order (see dates.detect_order).
+    """
     text = note.get("text")
     if not isinstance(text, str) or not text.strip():
         return None
     channel = simple_text(note.get("channel") or "")
     record_date = dates.parse_date(note.get("created_at"))
     is_check = channel == "kyc"
-    dob = _dob_from_text(text, record_date)
+    caps = find_caps_name(text)
+    how, dob = dob_from_note(text, record_date, order, caps[2] if caps else None)
     if not is_check and not (_IDENTITY.search(text) and dob is not None):
         return None
-    caps = find_caps_name(text)
     name = caps[0] if caps else None
     rest = text if not caps else text[:caps[1]] + " " + text[caps[2]:]
     found_countries = countries.find_in_text(rest)
@@ -161,22 +161,24 @@ def parse_check_note(note):
         document = normal_document(number.group(1)) or None
     status = "rejected" if _NEGATIVE.search(text) else "approved"
     if record_date is None:
-        later = [value for _s, _e, value in dates.find_dates(text) if value != dob]
+        later = [value for _s, _e, value in dates.find_dates(text, order) if value != dob]
         record_date = max(later, key=dates.sort_key) if later else None
-    return Check(note["note_id"], record_date, status, name, dob, found_countries, document, "note")
+    return Check(note["note_id"], record_date, status, name, dob, found_countries, document, "note", how)
 
 
-def check_from_row(row):
+def check_from_row(row, order=None):
+    """A KYC provider row as a Check; order is the provider's DOB date order."""
     status = simple_text(row.get("result") or "")
     return Check(
         row["check_id"],
         dates.parse_date(row.get("checked_at")),
         "approved" if status == "approved" else (status or "unknown"),
         row.get("verified_name") if isinstance(row.get("verified_name"), str) else None,
-        dates.parse_date(row.get("verified_dob")),
+        dates.parse_date(row.get("verified_dob"), order),
         countries.lookup(row.get("document_country")) or (),
         normal_document(row.get("document_number")) or None,
         "kyc",
+        "field",
     )
 
 
@@ -244,7 +246,7 @@ class Resolver(object):
         self._check_cache = {}
         self._records_by_document = {}
         for row in data.kyc_checks:
-            check = check_from_row(row)
+            check = check_from_row(row, data.date_orders["kyc"])
             owner = self._applicant_owner.get(row.get("applicant_id"))
             if owner and check.status == "approved" and check.document:
                 self._records_by_document.setdefault(check.document, set()).add(owner)
@@ -255,6 +257,9 @@ class Resolver(object):
         self._name_index = None
 
     # ---------------------------------------------------- record helpers
+
+    def record_dob(self, record):
+        return dates.parse_date(record.get("dob"), self.data.date_orders["customers"])
 
     def record_names(self, record):
         company = self._is_company(record.get("entity_type"))
@@ -273,7 +278,7 @@ class Resolver(object):
         email = normal_email(record.get("email"))
         result = []
         for note in self.data.notes_by_email.get(email, []):
-            check = parse_check_note(note)
+            check = parse_check_note(note, self.data.date_orders["notes"])
             if check is not None:
                 result.append(check)
         return result
@@ -286,7 +291,7 @@ class Resolver(object):
         checks = []
         for applicant in self._applicants_by_customer.get(record_id, []):
             for row in self.data.checks_by_applicant.get(applicant, []):
-                checks.append(check_from_row(row))
+                checks.append(check_from_row(row, self.data.date_orders["kyc"]))
         checks.extend(self._note_checks(record))
         checks.sort(key=check_order)
         self._check_cache[record_id] = checks
@@ -304,7 +309,7 @@ class Resolver(object):
         return {
             "name": customer.get("name") if isinstance(customer.get("name"), str) else None,
             "parts": self.names.parts(customer.get("name"), company),
-            "dob": dates.parse_date(customer.get("dob")),
+            "dob": dates.parse_date(customer.get("dob"), self.data.date_orders["alerts"]),
             "dob_given": bool(customer.get("dob")),
             "countries": country,          # () unknown, None unrecognised
             "country_text": customer.get("country"),
@@ -323,7 +328,7 @@ class Resolver(object):
                               for _field, _value, parts in self.record_names(record))
         else:
             fit["name"] = None
-        record_dob = dates.parse_date(record.get("dob"))
+        record_dob = self.record_dob(record)
         if screened["dob"] is not None and record_dob is not None:
             fit["dob"] = dates.agree_in_shared_parts(screened["dob"], record_dob)
         elif screened["dob_given"] and screened["dob"] is None:
@@ -416,7 +421,7 @@ class Resolver(object):
                 for _field, _value, parts in self.record_names(record):
                     for part in parts:
                         index.setdefault(self.names.key(part), set()).add(record["record_id"])
-                dob = dates.parse_date(record.get("dob"))
+                dob = self.record_dob(record)
                 if dob is not None:
                     by_year.setdefault(dob[0], set()).add(record["record_id"])
             self._name_index = (index, by_year)
@@ -436,10 +441,10 @@ class Resolver(object):
                 continue
             joined = set()
             phone = normal_phone(record.get("phone"))
-            dob = dates.parse_date(record.get("dob"))
+            dob = self.record_dob(record)
             if phone and dates.is_full(dob):
                 for other in self.data.customers_by_phone.get(phone, []):
-                    if other["record_id"] != record_id and dates.parse_date(other.get("dob")) == dob:
+                    if other["record_id"] != record_id and self.record_dob(other) == dob:
                         joined.add(other["record_id"])
             for check in self.record_checks(record_id):
                 if check.status == "approved" and check.document:
@@ -465,7 +470,7 @@ class Resolver(object):
                 facts.append(Fact("entity_type", record["entity_type"], DECLARED, record_id, "entity_type"))
             for field, value, _parts in self.record_names(record):
                 facts.append(Fact("name", value, DECLARED, record_id, field))
-            dob = dates.parse_date(record.get("dob"))
+            dob = self.record_dob(record)
             if dob is not None:
                 facts.append(Fact("dob", dob, DECLARED, record_id, "record_dob"))
             for field, role in (("residence_country", "residence"), ("nationality", "nationality")):
@@ -478,7 +483,7 @@ class Resolver(object):
                     facts.append(Fact(field, record[field], DECLARED, record_id, field))
             email = normal_email(record.get("email"))
             for note in self.data.notes_by_email.get(email, []):
-                if parse_check_note(note) is not None:
+                if parse_check_note(note, self.data.date_orders["notes"]) is not None:
                     continue
                 for country in countries.find_in_text(note.get("text")):
                     facts.append(Fact("country", country, DECLARED, note["note_id"], "lived"))

@@ -308,6 +308,7 @@ _TEXT_REGEX = re.compile(
     + r")(?![0-9a-z])")
 _CODE_REGEX = re.compile(r"(?<![A-Za-z])(" + "|".join(sorted(_TEXT_CODES, key=lambda c: (-len(c), c))) + r")(?![A-Za-z])")
 _BRACKETS = re.compile(r"\([^)]*\)|\[[^\]]*\]|\{[^}]*\}")
+_POSSESSIVE = re.compile(r"['’]s\b")
 
 
 def lookup(value):
@@ -338,7 +339,9 @@ def find_in_text(text):
     found = set()
     for match in _CODE_REGEX.finditer(text):
         found.add(_TEXT_CODES[match.group(1)])
-    simple = simple_text(text)
+    # "Mexico's" must still name Mexico: drop possessive endings before the
+    # apostrophes are removed (otherwise it would read "mexicos").
+    simple = simple_text(_POSSESSIVE.sub("", text))
     for match in _TEXT_REGEX.finditer(simple):
         found.update(_TEXT[match.group(1)])
     return tuple(sorted(found))
