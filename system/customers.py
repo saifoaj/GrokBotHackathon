@@ -10,8 +10,9 @@ document number on approved identity checks, transitively.
 import re
 
 import countries
+from fact_check import claim_stands, strip_kyc
 from load import approved, low
-from norm import find_dates, parse_date, phone_key
+from norm import find_dates, fmt_date, parse_date, phone_key
 
 NEGATIVE = re.compile(r"\b(reject\w*|expire\w*|fail\w*|declin\w*|unsuccessful|denied|not (?:approved|verified|"
                       r"passed|valid|completed?|confirmed|cleared)|could not|unable|mismatch\w*|non-?match\w*|"
@@ -171,9 +172,10 @@ def parse_kyc_note(note):
 
 
 class People:
-    def __init__(self, data, rules):
+    def __init__(self, data, rules, checker=None):
         self.data = data
         self.rules = rules
+        self.checker = checker
         self._dob = {}
         for c in data.customers:
             self._dob[c["record_id"]] = parse_date(c.get("dob"))
@@ -395,9 +397,23 @@ class People:
                     self._kyc_note_cache[n["note_id"]] = parsed
                 if not parsed.get("approved"):
                     continue
-                facts.append({"id": n["note_id"], "date": parsed.get("date"), "name": parsed.get("name"),
-                              "dob": parsed.get("dob"), "country": parsed.get("country"),
-                              "countries": parsed.get("countries") or [], "note": True})
+                use = {"id": n["note_id"], "date": parsed.get("date"), "name": parsed.get("name"),
+                       "dob": parsed.get("dob"), "country": parsed.get("country"),
+                       "countries": list(parsed.get("countries") or []), "note": True}
+                if self.checker:
+                    claim = {}
+                    if use["name"]:
+                        claim["name"] = use["name"]
+                    if use["dob"]:
+                        claim["dob"] = fmt_date(use["dob"])
+                    if use["country"]:
+                        claim["country"] = use["country"]
+                    if claim:
+                        use = strip_kyc(use, self.checker.verdict(
+                            n["note_id"], "kyc_note", n.get("text") or "", claim))
+                if not (use.get("name") or use.get("dob") or use.get("country") or use.get("countries")):
+                    continue
+                facts.append(use)
         facts.sort(key=lambda f: (f["date"] or (0, 0, 0), f["id"]), reverse=True)
         return facts
 
@@ -412,6 +428,11 @@ class People:
                 text = n.get("text") or ""
                 found = countries.find_in_text(text)
                 for country in found:
+                    if self.checker:
+                        verdict = self.checker.verdict(
+                            n["note_id"], "support_note", text, {"country": country})
+                        if not claim_stands(verdict, ["country"]):
+                            continue
                     out.setdefault(country, set()).add(n["note_id"])
                 if not found and LIVED.search(text):
                     # the note says they lived somewhere, but not in a country we can name

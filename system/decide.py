@@ -60,7 +60,10 @@ def hit_dob_short(h):
 
 
 def compare(pic, h, rules, screened_at):
-    """Return dict(decision, codes, evidence, sentences, ...) for one person and one hit."""
+    """Return dict(decision, codes, evidence, sentences, ...) for one person and one hit.
+
+    Sentences are built only from the picture facts. They never include model text.
+    """
     company = not pic["is_person"]
     fired = {}  # code -> (evidence ids, sentence)
     sources_dob = sorted({s for _, src in pic["dobs"] for s in src})

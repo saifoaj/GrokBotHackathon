@@ -17,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "system"))
 
 import countries  # noqa: E402
+import fact_check  # noqa: E402
 import hits as hitmod  # noqa: E402
 import main as mainmod  # noqa: E402
 from customers import People, parse_kyc_note  # noqa: E402
@@ -141,7 +142,10 @@ def main(folder):
     data = Data(folder)
     mainmod.DATA = data
     rules = NameRules(folder)
-    people = People(data, rules)
+    checker = fact_check.maybe_checker()
+    people = People(data, rules, checker=checker)
+    if checker:
+        mainmod.gather_reads(data, people, checker)
     labels = {r["hit_id"]: r for r in read_jsonl(folder, "practice_labels", "hit_id")} if os.path.exists(os.path.join(folder, "practice_labels.jsonl")) else {}
     records, out_hits = {}, []
 
@@ -157,8 +161,8 @@ def main(folder):
         linked = sorted({cid for p in persons for cid in p["anchors"]}) if link else []
         for hid in sorted(data.hits_of_alert[alert_id]):
             hit = data.hit[hid]
-            h = hitmod.picture(hit, data)
-            line = mainmod.decide_hit(hit, alert, routes, screened, pics, rules, {})
+            h = hitmod.picture(hit, data, checker)
+            line = mainmod.decide_hit(hit, alert, routes, screened, pics, rules, {}, checker)
             line["evidence"] = sorted(set(line["evidence"]))
             ppl = []
             for pic in pics:
